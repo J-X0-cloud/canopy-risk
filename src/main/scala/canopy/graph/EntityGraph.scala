@@ -5,7 +5,9 @@ import canopy.domain.{Outcome, Transaction}
 import scala.annotation.tailrec
 import scala.collection.immutable.Queue
 
-/** A vertex in the entity graph. Cards are linked to the devices, networks and accounts they use. */
+/**
+ * A vertex in the entity graph. Cards are linked to the devices, networks and accounts they use.
+ */
 enum Node:
   case Card(id: String)
   case Device(id: String)
@@ -38,9 +40,9 @@ final case class GraphFeatures(
 /**
  * An undirected multi-entity graph with time-stamped edges.
  *
- * Each edge remembers when it was last observed; edges older than the TTL are invisible to
- * queries and removed by [[prune]]. Confirmed-fraud labels attach to card nodes so that a new card
- * which shares a phone or a /24 with previously charged-back cards inherits that risk.
+ * Each edge remembers when it was last observed; edges older than the TTL are invisible to queries
+ * and removed by [[prune]]. Confirmed-fraud labels attach to card nodes so that a new card which
+ * shares a phone or a /24 with previously charged-back cards inherits that risk.
  *
  * Hub nodes (a carrier-grade NAT, a shared kiosk) would otherwise connect every customer to every
  * other. Nodes whose live degree exceeds `hubDegree` are counted when reached but never expanded.
@@ -83,10 +85,10 @@ final case class EntityGraph(
   def degree(node: Node, now: Long): Int = neighbours(node, now).size
 
   /**
-   * Bounded breadth-first exploration from a card. Accounts are traversed but do not by
-   * themselves make two cards "linked": a household sharing an account is normal, sharing a
-   * device fingerprint across unrelated accounts is not. Linked cards are those reached through
-   * at least one device or network hop.
+   * Bounded breadth-first exploration from a card. Accounts are traversed but do not by themselves
+   * make two cards "linked": a household sharing an account is normal, sharing a device fingerprint
+   * across unrelated accounts is not. Linked cards are those reached through at least one device or
+   * network hop.
    */
   def featuresFor(cardId: String, now: Long): GraphFeatures =
     val start = Node.Card(cardId)
@@ -155,4 +157,5 @@ final case class EntityGraph(
       .sortBy(c => -c.size)
 
 object EntityGraph:
-  def empty(config: GraphConfig = GraphConfig()): EntityGraph = EntityGraph(config, Map.empty, Map.empty)
+  def empty(config: GraphConfig = GraphConfig()): EntityGraph =
+    EntityGraph(config, Map.empty, Map.empty)

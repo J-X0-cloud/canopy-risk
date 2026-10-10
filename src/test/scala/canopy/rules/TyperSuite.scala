@@ -13,10 +13,14 @@ class TyperSuite extends munit.FunSuite:
   private def check(src: String) = Parser.parse(src).left.map(List(_)).flatMap(typer.check)
 
   private def errors(src: String): List[String] =
-    check(src).swap.toOption.getOrElse(fail(s"expected type errors for: $src")).filter(_.isError).map(_.message)
+    check(src).swap.toOption.getOrElse(fail(s"expected type errors for: $src")).filter(
+      _.isError
+    ).map(_.message)
 
   test("well-typed program passes and lets are resolved") {
-    val result = check("let big = amount > 100\nrule r when big and country == \"US\" then review reason \"x\"")
+    val result = check(
+      "let big = amount > 100\nrule r when big and country == \"US\" then review reason \"x\""
+    )
     val (typed, warnings) = result.fold(ds => fail(ds.map(_.summary).mkString), identity)
     assertEquals(warnings, Nil)
     assertEquals(typed.rules.head.condition.features, Set("amount", "country"))
@@ -33,12 +37,17 @@ class TyperSuite extends munit.FunSuite:
   }
 
   test("condition must be boolean") {
-    assertEquals(errors("rule r when amount + 1 then approve"), List("rule condition must be a boolean but is a number"))
+    assertEquals(
+      errors("rule r when amount + 1 then approve"),
+      List("rule condition must be a boolean but is a number")
+    )
   }
 
   test("operand type mismatches name the side that is wrong") {
     assert(errors("rule r when amount > \"x\" then approve").head.contains("right operand"))
-    assert(errors("rule r when (count and is_new) then approve").head.contains("left operand of 'and'"))
+    assert(
+      errors("rule r when (count and is_new) then approve").head.contains("left operand of 'and'")
+    )
   }
 
   test("equality requires matching types") {
@@ -66,7 +75,9 @@ class TyperSuite extends munit.FunSuite:
   test("function arity and argument types are checked") {
     assert(errors("rule r when abs(1, 2) > 0 then approve").head.contains("expects 1"))
     assert(errors("rule r when max(1) > 0 then approve").head.contains("at least 2"))
-    assert(errors("rule r when coalesce(amount, \"x\") > 0 then approve").head.contains("same type"))
+    assert(
+      errors("rule r when coalesce(amount, \"x\") > 0 then approve").head.contains("same type")
+    )
   }
 
   test("duplicate rules, duplicate lets and shadowing are rejected") {

@@ -45,7 +45,8 @@ object CountryCode:
     if t.length == 2 && t.forall(c => c >= 'A' && c <= 'Z') then Right(t)
     else Left(s"'$s' is not a two-letter country code")
 
-  def unsafe(s: String): CountryCode = parse(s).fold(e => throw IllegalArgumentException(e), identity)
+  def unsafe(s: String): CountryCode =
+    parse(s).fold(e => throw IllegalArgumentException(e), identity)
 
   extension (c: CountryCode) def value: String = c
 

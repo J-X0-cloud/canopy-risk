@@ -2,8 +2,8 @@ package canopy.ml
 
 /**
  * The small amount of dense linear algebra the trainer needs. Matrices are row-major
- * `Array[Array[Double]]`; dimensions are the number of model features (tens), so clarity wins
- * over blocking or SIMD.
+ * `Array[Array[Double]]`; dimensions are the number of model features (tens), so clarity wins over
+ * blocking or SIMD.
  */
 object Linalg:
   def dot(a: Array[Double], b: Array[Double]): Double =
@@ -65,9 +65,9 @@ object Linalg:
     x
 
   /**
-   * Solves A x = b for symmetric positive (semi-)definite A. If the factorisation fails, a
-   * growing diagonal jitter is added, which is the usual remedy for near-singular Hessians caused
-   * by collinear or constant features.
+   * Solves A x = b for symmetric positive (semi-)definite A. If the factorisation fails, a growing
+   * diagonal jitter is added, which is the usual remedy for near-singular Hessians caused by
+   * collinear or constant features.
    */
   def solveSpd(a: Array[Array[Double]], b: Array[Double]): Array[Double] =
     val n = a.length
@@ -75,7 +75,7 @@ object Linalg:
     def attempt(jitter: Double): Array[Double] =
       val m = Array.tabulate(n, n)((i, j) => if i == j then a(i)(j) + jitter else a(i)(j))
       cholesky(m) match
-        case Some(l) => choleskySolve(l, b)
+        case Some(l)                => choleskySolve(l, b)
         case None if jitter < scale => attempt(if jitter == 0 then scale * 1e-10 else jitter * 10)
         case None => throw ArithmeticException("matrix is not positive definite even with jitter")
     attempt(0.0)

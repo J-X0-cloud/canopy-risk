@@ -47,14 +47,14 @@ enum Typed:
 
   /** Features this expression reads, directly or through lets. */
   def features: Set[String] = this match
-    case Feature(n, _)         => Set(n)
-    case LetRef(_, b)          => b.features
-    case ListLit(xs, _)        => xs.flatMap(_.features).toSet
-    case Unary(_, e, _)        => e.features
-    case Binary(_, l, r, _)    => l.features ++ r.features
-    case In(n, h, _)           => n.features ++ h.features
-    case Between(v, lo, hi)    => v.features ++ lo.features ++ hi.features
-    case Call(_, args, _)      => args.flatMap(_.features).toSet
+    case Feature(n, _)                      => Set(n)
+    case LetRef(_, b)                       => b.features
+    case ListLit(xs, _)                     => xs.flatMap(_.features).toSet
+    case Unary(_, e, _)                     => e.features
+    case Binary(_, l, r, _)                 => l.features ++ r.features
+    case In(n, h, _)                        => n.features ++ h.features
+    case Between(v, lo, hi)                 => v.features ++ lo.features ++ hi.features
+    case Call(_, args, _)                   => args.flatMap(_.features).toSet
     case NumLit(_) | StrLit(_) | BoolLit(_) => Set.empty
 
 final case class TypedRule(rule: Decl.Rule, condition: Typed)
@@ -67,7 +67,7 @@ final case class TypedProgram(rules: List[TypedRule], lets: Map[String, Typed])
  */
 final class Typer(schema: Map[String, Type]):
 
-  private final case class Ctx(lets: Map[String, Typed])
+  final private case class Ctx(lets: Map[String, Typed])
 
   def check(program: Program): Either[List[Diagnostic], (TypedProgram, List[Diagnostic])] =
     val diags = List.newBuilder[Diagnostic]
@@ -80,7 +80,8 @@ final class Typer(schema: Map[String, Type]):
 
     program.decls.foreach {
       case Decl.Let(name, e, pos) =>
-        if schema.contains(name) then error(s"let '$name' would shadow the feature of that name", pos)
+        if schema.contains(name) then
+          error(s"let '$name' would shadow the feature of that name", pos)
         else if ctx.lets.contains(name) then error(s"let '$name' is already defined", pos)
         else
           infer(e, ctx, error) match
@@ -111,9 +112,9 @@ final class Typer(schema: Map[String, Type]):
 
   /** Evaluates literal-only boolean expressions so trivially constant rules can be flagged. */
   private def constant(t: Typed): Option[Boolean] = t match
-    case Typed.BoolLit(b) => Some(b)
+    case Typed.BoolLit(b)               => Some(b)
     case Typed.Unary(UnaryOp.Not, e, _) => constant(e).map(!_)
-    case _ => None
+    case _                              => None
 
   def inferExpr(e: Expr): Either[List[Diagnostic], Typed] =
     val errs = List.newBuilder[Diagnostic]
@@ -135,7 +136,10 @@ final class Typer(schema: Map[String, Type]):
       case Expr.StrLit(s, _)  => Some(Typed.StrLit(s))
       case Expr.BoolLit(b, _) => Some(Typed.BoolLit(b))
       case Expr.Ref(name, pos) =>
-        ctx.lets.get(name).map(Typed.LetRef(name, _)).orElse(schema.get(name).map(Typed.Feature(name, _))) match
+        ctx.lets.get(name).map(Typed.LetRef(
+          name,
+          _
+        )).orElse(schema.get(name).map(Typed.Feature(name, _))) match
           case found @ Some(_) => found
           case None =>
             val hint = Typer.suggest(name, schema.keySet ++ ctx.lets.keySet)
@@ -185,7 +189,10 @@ final class Typer(schema: Map[String, Type]):
               None
             case Type.Str if n.tpe == Type.Str => Some(Typed.In(n, h, negated))
             case other =>
-              error(s"right-hand side of 'in' must be a list or string, not a ${other.show}", haystack.pos)
+              error(
+                s"right-hand side of 'in' must be a list or string, not a ${other.show}",
+                haystack.pos
+              )
               None
         yield ok
       case Expr.Between(v, lo, hi, _) =>
@@ -212,7 +219,7 @@ final class Typer(schema: Map[String, Type]):
             case Some(fn) =>
               val ts = typedArgs.flatten
               fn.resultType(ts.map(_.tpe)) match
-                case Right(t)  => Some(Typed.Call(fn, ts, t))
+                case Right(t) => Some(Typed.Call(fn, ts, t))
                 case Left(msg) =>
                   error(s"$name: $msg", pos)
                   None

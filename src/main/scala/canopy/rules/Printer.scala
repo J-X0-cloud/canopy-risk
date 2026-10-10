@@ -33,12 +33,12 @@ object Printer:
     if precedence(e) < required then s"($s)" else s
 
   def expr(e: Expr): String = e match
-    case Expr.NumLit(v, _)     => number(v)
-    case Expr.StrLit(s, _)     => string(s)
-    case Expr.BoolLit(b, _)    => b.toString
-    case Expr.Ref(name, _)     => name
-    case Expr.ListLit(xs, _)   => xs.map(expr).mkString("[", ", ", "]")
-    case Expr.Call(f, args, _) => args.map(expr).mkString(s"$f(", ", ", ")")
+    case Expr.NumLit(v, _)                   => number(v)
+    case Expr.StrLit(s, _)                   => string(s)
+    case Expr.BoolLit(b, _)                  => b.toString
+    case Expr.Ref(name, _)                   => name
+    case Expr.ListLit(xs, _)                 => xs.map(expr).mkString("[", ", ", "]")
+    case Expr.Call(f, args, _)               => args.map(expr).mkString(s"$f(", ", ", ")")
     case Expr.Unary(UnaryOp.Neg, operand, _) => s"-${at(operand, 7)}"
     case Expr.Unary(UnaryOp.Not, operand, _) => s"not ${at(operand, 3)}"
     case Expr.Binary(op, l, r, _) =>

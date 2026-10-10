@@ -22,7 +22,9 @@ object Commands:
       r <- Io.loadRules(rules)
       service <- ScoringService.create(m, r)
       _ <- Server.resource(service, host, port).use { server =>
-        IO.println(s"canopy-risk listening on ${server.address} (model ${m.version}, ${r.size} rules)") *> IO.never
+        IO.println(
+          s"canopy-risk listening on ${server.address} (model ${m.version}, ${r.size} rules)"
+        ) *> IO.never
       }
     yield ExitCode.Success
 
@@ -47,13 +49,20 @@ object Commands:
       data <- source match
         case Left(cfg) => IO(Simulator.run(cfg))
         case Right((events, labels)) =>
-          (Io.strict(Io.transactions(events), events), Io.strict(Io.labels(labels), labels)).mapN(SimResult.apply)
+          (
+            Io.strict(Io.transactions(events), events),
+            Io.strict(Io.labels(labels), labels)
+          ).mapN(SimResult.apply)
       start <- IO.monotonic
       rows <- IO(Trainer.buildRows(data.transactions, data.labels))
       result <- IO(
         Trainer.train(
           rows,
-          TrainerConfig(declinePrecision = declinePrecision, maxReviewRate = maxReviewRate, train = TrainConfig(l2 = l2))
+          TrainerConfig(
+            declinePrecision = declinePrecision,
+            maxReviewRate = maxReviewRate,
+            train = TrainConfig(l2 = l2)
+          )
         )
       )
       end <- IO.monotonic
@@ -63,8 +72,14 @@ object Commands:
            |newton iterations: ${result.fit.iterations} (converged: ${result.fit.converged})
            |train:      ${result.train.render}
            |validation: ${result.validation.render}
-           |thresholds: review >= ${"%.4f".format(result.model.thresholds.review)}, decline >= ${"%.4f".format(result.model.thresholds.decline)}
-           |decline precision ${"%.3f".format(result.tuned.declineConfusion.precision)}, recall ${"%.3f".format(result.tuned.declineConfusion.recall)}, review rate ${"%.4f".format(result.tuned.reviewRate)}
+           |thresholds: review >= ${"%.4f".format(
+            result.model.thresholds.review
+          )}, decline >= ${"%.4f".format(result.model.thresholds.decline)}
+           |decline precision ${"%.3f".format(
+            result.tuned.declineConfusion.precision
+          )}, recall ${"%.3f".format(
+            result.tuned.declineConfusion.recall
+          )}, review rate ${"%.4f".format(result.tuned.reviewRate)}
            |top weights:
            |${result.model.weights.take(8).map((k, w) => f"  $k%-32s $w%+.3f").mkString("\n")}
            |model written to $out""".stripMargin
@@ -94,7 +109,10 @@ object Commands:
       m <- Io.loadModel(model)
       r <- Io.loadRules(rules)
       fraud <- labels.fold(IO.pure(Set.empty[String]))(p =>
-        Io.strict(Io.labels(p), p).map(_.filter(_.outcome == Outcome.Fraud).map(_.transactionId).toSet)
+        Io.strict(
+          Io.labels(p),
+          p
+        ).map(_.filter(_.outcome == Outcome.Fraud).map(_.transactionId).toSet)
       )
       service <- ScoringService.create(m, r, FeaturePipeline())
       start <- IO.monotonic
@@ -117,24 +135,31 @@ object Commands:
             IO.println(s"${tx.id} arrived $lag ms too late to reorder; scoring anyway") *>
               service.score(tx).tupleRight(true)
         }
-        .evalTap((d, _) => decisions.fold(IO.unit)(w => IO.blocking(w.write(d.asJson.noSpaces + "\n"))))
+        .evalTap((d, _) =>
+          decisions.fold(IO.unit)(w => IO.blocking(w.write(d.asJson.noSpaces + "\n")))
+        )
         .compile
-        .fold(ReplaySummary(0, 0, 0, Map.empty, 0, 0, fraud.size.toLong, 0)) { case (s, (d, late)) =>
-          val isFraud = fraud.contains(d.transactionId)
-          s.copy(
-            total = s.total + 1,
-            late = s.late + (if late then 1 else 0),
-            verdicts = s.verdicts.updatedWith(d.verdict)(c => Some(c.getOrElse(0L) + 1)),
-            caughtFraud = s.caughtFraud + (if isFraud && d.verdict == Verdict.Decline then 1 else 0),
-            reviewedFraud = s.reviewedFraud + (if isFraud && d.verdict == Verdict.Review then 1 else 0),
-            declinedLegit = s.declinedLegit + (if !isFraud && d.verdict == Verdict.Decline then 1 else 0)
-          )
+        .fold(ReplaySummary(0, 0, 0, Map.empty, 0, 0, fraud.size.toLong, 0)) {
+          case (s, (d, late)) =>
+            val isFraud = fraud.contains(d.transactionId)
+            s.copy(
+              total = s.total + 1,
+              late = s.late + (if late then 1 else 0),
+              verdicts = s.verdicts.updatedWith(d.verdict)(c => Some(c.getOrElse(0L) + 1)),
+              caughtFraud =
+                s.caughtFraud + (if isFraud && d.verdict == Verdict.Decline then 1 else 0),
+              reviewedFraud =
+                s.reviewedFraud + (if isFraud && d.verdict == Verdict.Review then 1 else 0),
+              declinedLegit =
+                s.declinedLegit + (if !isFraud && d.verdict == Verdict.Decline then 1 else 0)
+            )
         }
         .guarantee(decisions.fold(IO.unit)(w => IO.blocking(w.close())))
       end <- IO.monotonic
       elapsed = (end - start).toUnit(TimeUnit.SECONDS)
       rejectedCount <- rejected.get
-      _ <- IO.println(renderSummary(summary.copy(rejected = rejectedCount), elapsed, labels.isDefined))
+      _ <-
+        IO.println(renderSummary(summary.copy(rejected = rejectedCount), elapsed, labels.isDefined))
     yield ExitCode.Success
 
   private def renderSummary(s: ReplaySummary, seconds: Double, withLabels: Boolean): String =
@@ -156,7 +181,9 @@ object Commands:
         case Left(ds) => IO.println(RuleSet.renderErrors(source, ds)).as(ExitCode.Error)
         case Right(rs) =>
           val warnings = rs.warnings.filter(_.severity == Severity.Warning)
-          val lines = rs.rules.map(r => f"  ${r.priority}%4d  ${r.name}%-28s ${r.action.render}%-12s ${r.features.toList.sorted.mkString(", ")}")
+          val lines = rs.rules.map(r =>
+            f"  ${r.priority}%4d  ${r.name}%-28s ${r.action.render}%-12s ${r.features.toList.sorted.mkString(", ")}"
+          )
           IO.println(s"$path: ${rs.size} rules OK\n${lines.mkString("\n")}") *>
             warnings.traverse_(w => IO.println(w.render(source))).as(ExitCode.Success)
     }

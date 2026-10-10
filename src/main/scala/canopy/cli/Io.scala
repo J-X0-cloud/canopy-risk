@@ -26,31 +26,40 @@ object Io:
     IO.blocking(Option(getClass.getClassLoader.getResourceAsStream(name))).flatMap {
       case None => IO.raiseError(IllegalStateException(s"bundled resource $name is missing"))
       case Some(in) =>
-        IO.blocking(try String(in.readAllBytes(), "UTF-8") finally in.close())
+        IO.blocking(try String(in.readAllBytes(), "UTF-8")
+        finally in.close())
     }
 
   def parseModel(text: String, origin: String): IO[LogisticModel] =
     IO.fromEither(
-      io.circe.parser.decode[LogisticModel](text).left.map(e => IllegalArgumentException(s"$origin: ${e.getMessage}"))
+      io.circe.parser.decode[LogisticModel](text).left.map(e =>
+        IllegalArgumentException(s"$origin: ${e.getMessage}")
+      )
     )
 
   def loadModel(path: Option[String]): IO[LogisticModel] = path match
     case Some(p) => readText(p).flatMap(parseModel(_, p))
-    case None    => resource(defaultModelResource).flatMap(parseModel(_, s"resource $defaultModelResource"))
+    case None =>
+      resource(defaultModelResource).flatMap(parseModel(_, s"resource $defaultModelResource"))
 
   def loadRules(path: Option[String]): IO[RuleSet] =
     path.fold(resource(defaultRulesResource))(readText).flatMap { source =>
       RuleSet.compile(source) match
         case Right(rs) => IO.pure(rs)
         case Left(ds) =>
-          IO.raiseError(IllegalArgumentException("rules failed to compile:\n" + RuleSet.renderErrors(source, ds)))
+          IO.raiseError(IllegalArgumentException(
+            "rules failed to compile:\n" + RuleSet.renderErrors(source, ds)
+          ))
     }
 
-  def saveModel(path: String, model: LogisticModel): IO[Unit] = writeText(path, model.asJson.spaces2 + "\n")
+  def saveModel(path: String, model: LogisticModel): IO[Unit] =
+    writeText(path, model.asJson.spaces2 + "\n")
 
   def transactions(path: String): Stream[IO, Either[IngestError, Transaction]] =
     Files[IO].readAll(Path(path)).through(
-      StreamOps.ndjson(line => EventParser.parseLine(line, EventParser.transaction).left.map(_.toList))
+      StreamOps.ndjson(line =>
+        EventParser.parseLine(line, EventParser.transaction).left.map(_.toList)
+      )
     )
 
   def labels(path: String): Stream[IO, Either[IngestError, Label]] =
@@ -68,4 +77,6 @@ object Io:
   def writeNdjson[A: io.circe.Encoder](path: String, items: Seq[A]): IO[Unit] =
     val p = Path(path)
     p.parent.fold(IO.unit)(Files[IO].createDirectories(_)) *>
-      Stream.emits(items).map(_.asJson.noSpaces + "\n").through(Files[IO].writeUtf8(p)).compile.drain
+      Stream.emits(
+        items
+      ).map(_.asJson.noSpaces + "\n").through(Files[IO].writeUtf8(p)).compile.drain

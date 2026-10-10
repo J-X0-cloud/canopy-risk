@@ -17,8 +17,8 @@ object FeatureConfig:
   val Day: Long = 24 * Hour
 
   /**
-   * Gambling, quasi-cash, money transfer, crypto and similar categories that card networks
-   * classify as elevated risk.
+   * Gambling, quasi-cash, money transfer, crypto and similar categories that card networks classify
+   * as elevated risk.
    */
   val defaultHighRiskMccs: Set[Int] = Set(4829, 5967, 6051, 6211, 6540, 7273, 7995)
 

@@ -1,6 +1,8 @@
 package canopy.domain
 
-/** Final verdict, ordered by severity so the strictest of several candidate verdicts can be taken. */
+/**
+ * Final verdict, ordered by severity so the strictest of several candidate verdicts can be taken.
+ */
 enum Verdict(val wire: String, val severity: Int):
   case Approve extends Verdict("approve", 0)
   case Review extends Verdict("review", 1)

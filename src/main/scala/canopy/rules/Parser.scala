@@ -26,8 +26,8 @@ object Parser:
   def parseExpr(source: String): Either[Diagnostic, Expr] =
     Lexer.tokenize(source).flatMap(tokens => new Parser(tokens).standaloneExpr())
 
-private final class Parser(tokens: Vector[Token]):
-  private final case class Failure(diagnostic: Diagnostic) extends Exception with NoStackTrace
+final private class Parser(tokens: Vector[Token]):
+  final private case class Failure(diagnostic: Diagnostic) extends Exception with NoStackTrace
 
   private var index = 0
 
@@ -45,14 +45,17 @@ private final class Parser(tokens: Vector[Token]):
   private def fail(msg: String, pos: Pos = peek.pos): Nothing =
     throw Failure(Diagnostic(Severity.Error, msg, pos))
 
-  private def expected(what: String): Nothing = fail(s"expected $what but found ${peek.tok.describe}")
+  private def expected(what: String): Nothing =
+    fail(s"expected $what but found ${peek.tok.describe}")
 
   private def acceptKw(word: String): Boolean =
-    if peek.tok == Tok.Kw(word) then { advance(); true }
+    if peek.tok == Tok.Kw(word) then
+      advance(); true
     else false
 
   private def acceptSym(sym: String): Boolean =
-    if peek.tok == Tok.Sym(sym) then { advance(); true }
+    if peek.tok == Tok.Sym(sym) then
+      advance(); true
     else false
 
   private def expectKw(word: String): Pos =
@@ -213,15 +216,15 @@ private final class Parser(tokens: Vector[Token]):
   private def primary(): Expr =
     val t = advance()
     t.tok match
-      case Tok.Num(v, _)     => Expr.NumLit(v, t.pos)
-      case Tok.Str(s)        => Expr.StrLit(s, t.pos)
-      case Tok.Kw("true")    => Expr.BoolLit(true, t.pos)
-      case Tok.Kw("false")   => Expr.BoolLit(false, t.pos)
+      case Tok.Num(v, _)   => Expr.NumLit(v, t.pos)
+      case Tok.Str(s)      => Expr.StrLit(s, t.pos)
+      case Tok.Kw("true")  => Expr.BoolLit(true, t.pos)
+      case Tok.Kw("false") => Expr.BoolLit(false, t.pos)
       case Tok.Ident(name) if peek.tok == Tok.Sym("(") =>
         advance()
         Expr.Call(name, delimited(")"), t.pos)
-      case Tok.Ident(name)   => Expr.Ref(name, t.pos)
-      case Tok.Sym("[")      => Expr.ListLit(delimited("]"), t.pos)
+      case Tok.Ident(name) => Expr.Ref(name, t.pos)
+      case Tok.Sym("[")    => Expr.ListLit(delimited("]"), t.pos)
       case Tok.Sym("(") =>
         val inner = expr(0)
         expectSym(")")

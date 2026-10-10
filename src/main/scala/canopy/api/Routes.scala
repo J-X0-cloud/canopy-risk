@@ -44,18 +44,23 @@ final class Routes(service: ScoringService, maxBodyBytes: Long = 1L << 20):
   private def readJson(req: Request[IO]): IO[Either[String, Json]] =
     req.body.take(maxBodyBytes + 1).compile.to(Array).map { bytes =>
       if bytes.length > maxBodyBytes then Left(s"request body exceeds $maxBodyBytes bytes")
-      else io.circe.jawn.parseByteArray(bytes).left.map((e: ParsingFailure) => s"invalid JSON: ${e.message}")
+      else
+        io.circe.jawn.parseByteArray(bytes).left.map((e: ParsingFailure) =>
+          s"invalid JSON: ${e.message}"
+        )
     }
 
   private def withValid[A](req: Request[IO], decode: Json => EventParser.Result[A])(
       f: A => IO[Response[IO]]
   ): IO[Response[IO]] =
     readJson(req).flatMap {
-      case Left(msg) => service.metrics.recordRejected *> problems(Status.BadRequest, NonEmptyList.one(msg))
+      case Left(msg) =>
+        service.metrics.recordRejected *> problems(Status.BadRequest, NonEmptyList.one(msg))
       case Right(json) =>
         decode(json).toEither match
-          case Left(errs) => service.metrics.recordRejected *> problems(Status.UnprocessableContent, errs)
-          case Right(a)   => f(a)
+          case Left(errs) =>
+            service.metrics.recordRejected *> problems(Status.UnprocessableContent, errs)
+          case Right(a) => f(a)
     }
 
   private def diagnosticsJson(source: String, ds: List[Diagnostic]): Json =
@@ -123,7 +128,9 @@ final class Routes(service: ScoringService, maxBodyBytes: Long = 1L << 20):
         .zipWithIndex
         .filter((line, _) => line.trim.nonEmpty)
         .evalMap { (line, idx) =>
-          scoreLine(line).map(j => j.deepMerge(Json.obj("line" -> (idx + 1).asJson)).noSpaces + "\n")
+          scoreLine(line).map(j =>
+            j.deepMerge(Json.obj("line" -> (idx + 1).asJson)).noSpaces + "\n"
+          )
         }
         .through(fs2.text.utf8.encode)
       IO.pure(Response[IO](Status.Ok).withEntity(out).withContentType(ndjson))
@@ -136,10 +143,14 @@ final class Routes(service: ScoringService, maxBodyBytes: Long = 1L << 20):
       }
 
     case req @ POST -> Root / "v1" / "labels" =>
-      withValid(req, EventParser.label)(l => service.label(l) *> Accepted(Json.obj("status" -> "recorded".asJson)))
+      withValid(req, EventParser.label)(l =>
+        service.label(l) *> Accepted(Json.obj("status" -> "recorded".asJson))
+      )
 
     case GET -> Root / "v1" / "rules" =>
-      service.current.flatMap(c => Ok(rulesJson(c.rules).deepMerge(Json.obj("source" -> c.rules.source.asJson))))
+      service.current.flatMap(c =>
+        Ok(rulesJson(c.rules).deepMerge(Json.obj("source" -> c.rules.source.asJson)))
+      )
 
     case req @ PUT -> Root / "v1" / "rules" =>
       req.as[String].flatMap { source =>
@@ -166,7 +177,9 @@ final class Routes(service: ScoringService, maxBodyBytes: Long = 1L << 20):
             "intercept" -> m.intercept.asJson,
             "thresholds" -> m.thresholds.asJson,
             "validation" -> m.validation.asJson,
-            "weights" -> m.weights.map((k, w) => Json.obj("column" -> k.asJson, "weight" -> w.asJson)).asJson
+            "weights" -> m.weights.map((k, w) =>
+              Json.obj("column" -> k.asJson, "weight" -> w.asJson)
+            ).asJson
           )
         )
       }
@@ -185,7 +198,11 @@ final class Routes(service: ScoringService, maxBodyBytes: Long = 1L << 20):
         stats <- service.stats
         text <- service.metrics.render(
           List(
-            ("canopy_tracked_entities", "Entities with live feature state.", stats.entities.toDouble),
+            (
+              "canopy_tracked_entities",
+              "Entities with live feature state.",
+              stats.entities.toDouble
+            ),
             ("canopy_graph_nodes", "Nodes in the entity graph.", stats.graphNodes.toDouble),
             ("canopy_graph_edges", "Edges in the entity graph.", stats.graphEdges.toDouble)
           )
@@ -197,4 +214,6 @@ final class Routes(service: ScoringService, maxBodyBytes: Long = 1L << 20):
 object Routes:
   /** Shared NDJSON decoder for CLI file inputs, kept next to the streaming endpoint it mirrors. */
   def decodeTransactions(bytes: Stream[IO, Byte]): Stream[IO, Either[IngestError, Transaction]] =
-    bytes.through(StreamOps.ndjson(line => EventParser.parseLine(line, EventParser.transaction).left.map(_.toList)))
+    bytes.through(StreamOps.ndjson(line =>
+      EventParser.parseLine(line, EventParser.transaction).left.map(_.toList)
+    ))

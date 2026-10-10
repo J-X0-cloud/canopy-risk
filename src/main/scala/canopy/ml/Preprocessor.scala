@@ -5,6 +5,7 @@ import canopy.features.FeatureVector
 /** How a raw feature is reshaped before standardisation. */
 enum Transform:
   case Identity
+
   /** ln(1 + x) for non-negative, heavily right-skewed features such as counts and amounts. */
   case Log1p
 
@@ -58,8 +59,8 @@ final case class Preprocessor(specs: Vector[FeatureSpec], clip: Double):
 object Preprocessor:
   /**
    * Learns transforms, means and standard deviations from training rows. A feature is log
-   * transformed when it is never negative and its sample skewness exceeds `skewThreshold`.
-   * Constant features keep std = 1 so they standardise to 0 instead of dividing by zero.
+   * transformed when it is never negative and its sample skewness exceeds `skewThreshold`. Constant
+   * features keep std = 1 so they standardise to 0 instead of dividing by zero.
    */
   def fit(
       features: Vector[String],
@@ -68,7 +69,8 @@ object Preprocessor:
       skewThreshold: Double = 2.0
   ): Preprocessor =
     val specs = features.map { name =>
-      val values = rows.iterator.flatMap(_.num(name)).filterNot(v => v.isNaN || v.isInfinite).toArray
+      val values =
+        rows.iterator.flatMap(_.num(name)).filterNot(v => v.isNaN || v.isInfinite).toArray
       val anyMissing = values.length < rows.size
       if values.isEmpty then FeatureSpec(name, Transform.Identity, 0.0, 1.0, anyMissing)
       else

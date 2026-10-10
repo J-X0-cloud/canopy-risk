@@ -22,8 +22,8 @@ enum Value:
  *
  * Semantics for absent data follow SQL's three-valued logic: arithmetic or comparison involving a
  * missing value is missing, `and`/`or` use Kleene truth tables (`false and missing` is false,
- * `true or missing` is true), and a rule fires only when its condition is definitely true.
- * Division by zero and non-finite results are missing rather than exceptions or infinities.
+ * `true or missing` is true), and a rule fires only when its condition is definitely true. Division
+ * by zero and non-finite results are missing rather than exceptions or infinities.
  */
 object Evaluator:
   import Value.*
@@ -33,9 +33,9 @@ object Evaluator:
   private def num(d: Double): Value = if d.isNaN || d.isInfinite then Missing else VNum(d)
 
   def compile(t: Typed): Compiled = t match
-    case Typed.NumLit(v)  =>
+    case Typed.NumLit(v) =>
       val r = VNum(v); _ => r
-    case Typed.StrLit(s)  =>
+    case Typed.StrLit(s) =>
       val r = VStr(s); _ => r
     case Typed.BoolLit(b) =>
       val r = VBool(b); _ => r
@@ -63,9 +63,9 @@ object Evaluator:
           case VBool(false) => VBool(false)
           case left =>
             (left, cr(fv)) match
-              case (_, VBool(false))           => VBool(false)
+              case (_, VBool(false))          => VBool(false)
               case (VBool(true), VBool(true)) => VBool(true)
-              case _                           => Missing
+              case _                          => Missing
     case Typed.Binary(BinaryOp.Or, l, r, _) =>
       val (cl, cr) = (compile(l), compile(r))
       fv =>
@@ -73,9 +73,9 @@ object Evaluator:
           case VBool(true) => VBool(true)
           case left =>
             (left, cr(fv)) match
-              case (_, VBool(true))              => VBool(true)
+              case (_, VBool(true))             => VBool(true)
               case (VBool(false), VBool(false)) => VBool(false)
-              case _                             => Missing
+              case _                            => Missing
     case Typed.Binary(op, l, r, _) =>
       val (cl, cr) = (compile(l), compile(r))
       val f = binary(op)
@@ -104,7 +104,7 @@ object Evaluator:
       fv =>
         (cv(fv), clo(fv), chi(fv)) match
           case (VNum(x), VNum(a), VNum(b)) => VBool(a <= x && x <= b)
-          case _                            => Missing
+          case _                           => Missing
     case Typed.Call(fn, args, _) => call(fn, args.map(compile).toVector)
 
   private def fromFeature(v: Option[FeatureValue], tpe: Type): Value = (v, tpe) match

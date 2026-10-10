@@ -41,7 +41,14 @@ class DomainSuite extends munit.FunSuite:
     assertEquals(a.canonical, "2001:db8:0:0:0:0:0:1")
     assertEquals(a.network, "2001:db8:0::/48")
     assertEquals(IpAddress.parse("::1").map(_.canonical), Right("0:0:0:0:0:0:0:1"))
-    List("1::2::3", "12345::1", "1:2:3:4:5:6:7", "1:2:3:4:5:6:7:8:9", "g::1", "1:2:3:4::5:6:7:8").foreach {
+    List(
+      "1::2::3",
+      "12345::1",
+      "1:2:3:4:5:6:7",
+      "1:2:3:4:5:6:7:8:9",
+      "g::1",
+      "1:2:3:4::5:6:7:8"
+    ).foreach {
       bad => assert(IpAddress.parse(bad).isLeft, bad)
     }
   }

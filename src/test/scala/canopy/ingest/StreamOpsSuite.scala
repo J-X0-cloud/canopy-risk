@@ -5,7 +5,7 @@ import fs2.Stream
 import munit.CatsEffectSuite
 
 class StreamOpsSuite extends CatsEffectSuite:
-  private final case class Ev(id: String, ts: Long)
+  final private case class Ev(id: String, ts: Long)
 
   private def reorder(events: List[Ev], lateness: Long): IO[List[Ordered[Ev]]] =
     Stream.emits(events).covary[IO].through(StreamOps.reorder(lateness)(_.ts)).compile.toList
@@ -27,14 +27,18 @@ class StreamOpsSuite extends CatsEffectSuite:
 
   test("ties keep arrival order and zero lateness passes events straight through") {
     val events = List(Ev("x", 5), Ev("y", 5), Ev("z", 5))
-    reorder(events, 0).map(out => assertEquals(out.collect { case Ordered.InOrder(e) => e.id }, List("x", "y", "z")))
+    reorder(events, 0).map(out =>
+      assertEquals(out.collect { case Ordered.InOrder(e) => e.id }, List("x", "y", "z"))
+    )
   }
 
   test("reordering works across chunk boundaries") {
     val events = (1 to 1000).map(i => Ev(s"$i", if i % 2 == 0 then i - 1L else i + 1L)).toList
     Stream.emits(events).covary[IO].chunkLimit(7).unchunks
       .through(StreamOps.reorder(5)(_.ts)).compile.toList
-      .map(out => assertEquals(out.collect { case Ordered.InOrder(e) => e.ts }, events.map(_.ts).sorted))
+      .map(out =>
+        assertEquals(out.collect { case Ordered.InOrder(e) => e.ts }, events.map(_.ts).sorted)
+      )
   }
 
   test("dedupe drops repeats inside the window and forgets them after") {

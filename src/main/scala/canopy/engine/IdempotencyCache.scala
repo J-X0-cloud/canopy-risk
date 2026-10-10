@@ -3,9 +3,9 @@ package canopy.engine
 import scala.collection.immutable.Queue
 
 /**
- * Remembers the last `capacity` results by key, evicting in insertion order. Payment clients
- * retry on timeouts; answering a retried transaction id from the cache keeps the decision stable
- * and stops the retry from being counted twice in velocity features.
+ * Remembers the last `capacity` results by key, evicting in insertion order. Payment clients retry
+ * on timeouts; answering a retried transaction id from the cache keeps the decision stable and
+ * stops the retry from being counted twice in velocity features.
  */
 final case class IdempotencyCache[A](capacity: Int, entries: Map[String, A], order: Queue[String]):
   def get(key: String): Option[A] = entries.get(key)

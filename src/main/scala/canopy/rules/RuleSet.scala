@@ -22,8 +22,8 @@ final case class CompiledRule(
 )
 
 /**
- * A type-checked, compiled rule program ready for evaluation. Rules are kept in descending
- * priority order; ties keep their source order so authors control precedence explicitly.
+ * A type-checked, compiled rule program ready for evaluation. Rules are kept in descending priority
+ * order; ties keep their source order so authors control precedence explicitly.
  */
 final case class RuleSet(source: String, rules: Vector[CompiledRule], warnings: List[Diagnostic]):
   def evaluate(fv: FeatureVector): List[Firing] =
@@ -33,7 +33,8 @@ final case class RuleSet(source: String, rules: Vector[CompiledRule], warnings: 
       .toList
 
   /** Evaluates every rule and reports its raw three-valued outcome, for debugging tools. */
-  def trace(fv: FeatureVector): List[(String, Value)] = rules.toList.map(r => r.name -> r.condition(fv))
+  def trace(fv: FeatureVector): List[(String, Value)] =
+    rules.toList.map(r => r.name -> r.condition(fv))
 
   def size: Int = rules.size
 

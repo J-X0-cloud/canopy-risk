@@ -15,14 +15,18 @@ class EventParserSuite extends munit.FunSuite:
   }"""
 
   test("a valid payload decodes with normalised fields") {
-    val tx = EventParser.parseLine(valid, EventParser.transaction).fold(e => fail(e.toList.mkString), identity)
+    val tx = EventParser.parseLine(
+      valid,
+      EventParser.transaction
+    ).fold(e => fail(e.toList.mkString), identity)
     assertEquals(tx.amount, Money(1999, Currency.USD))
     assertEquals(tx.ipCountry.map(_.value), Some("GB"))
     assertEquals(tx.ip.map(_.network), Some("203.0.113.0/24"))
   }
 
   test("numeric amounts are accepted too") {
-    val json = parse(valid).toOption.get.deepMerge(Json.obj("amount" -> Json.fromDoubleOrNull(19.5)))
+    val json =
+      parse(valid).toOption.get.deepMerge(Json.obj("amount" -> Json.fromDoubleOrNull(19.5)))
     assertEquals(EventParser.transaction(json).toOption.map(_.amount.minorUnits), Some(1950L))
   }
 
@@ -41,19 +45,35 @@ class EventParserSuite extends munit.FunSuite:
     val fields = errors.map(_.takeWhile(_ != ':')).toSet
     assertEquals(
       fields,
-      Set("id", "timestamp", "account_id", "card_id", "merchant_id", "mcc", "amount", "channel", "ip", "billing_country")
+      Set(
+        "id",
+        "timestamp",
+        "account_id",
+        "card_id",
+        "merchant_id",
+        "mcc",
+        "amount",
+        "channel",
+        "ip",
+        "billing_country"
+      )
     )
   }
 
   test("optional fields may be absent or null") {
-    val json = parse(valid).toOption.get.deepMerge(Json.obj("device_id" -> Json.Null)).mapObject(_.remove("ip").remove("ip_country"))
+    val json = parse(valid).toOption.get.deepMerge(Json.obj("device_id" -> Json.Null)).mapObject(
+      _.remove("ip").remove("ip_country")
+    )
     val tx = EventParser.transaction(json).toOption.get
     assertEquals((tx.deviceId, tx.ip, tx.ipCountry), (None, None, None))
   }
 
   test("non-object and malformed input") {
     assert(EventParser.transaction(Json.arr()).isInvalid)
-    assert(EventParser.parseLine("{nope", EventParser.transaction).left.exists(_.head.startsWith("invalid JSON")))
+    assert(EventParser.parseLine(
+      "{nope",
+      EventParser.transaction
+    ).left.exists(_.head.startsWith("invalid JSON")))
   }
 
   test("transaction JSON round-trips through the encoder and parser") {

@@ -71,19 +71,23 @@ object JsonCodecs:
 
   /** Six significant decimals is plenty for probabilities and keeps responses readable. */
   private def round(d: Double): Double =
-    if d.isNaN || d.isInfinite then 0.0 else BigDecimal(d).setScale(6, BigDecimal.RoundingMode.HALF_UP).toDouble
+    if d.isNaN || d.isInfinite then 0.0
+    else BigDecimal(d).setScale(6, BigDecimal.RoundingMode.HALF_UP).toDouble
 
   // Model artifact.
 
   given Codec[Transform] = Codec.from(
-    Decoder.decodeString.emap(s => Transform.values.find(_.toString == s).toRight(s"unknown transform $s")),
+    Decoder.decodeString.emap(s =>
+      Transform.values.find(_.toString == s).toRight(s"unknown transform $s")
+    ),
     Encoder.encodeString.contramap(_.toString)
   )
   given Codec.AsObject[FeatureSpec] = Codec.AsObject.derived
   given Codec.AsObject[Preprocessor] = Codec.AsObject.derived
   given Codec.AsObject[Metrics.Report] = Codec.AsObject.derived
-  given Decoder[Thresholds] = Decoder.forProduct2[Thresholds, Double, Double]("review", "decline") { (r, d) =>
-    Thresholds(r, d)
+  given Decoder[Thresholds] = Decoder.forProduct2[Thresholds, Double, Double]("review", "decline") {
+    (r, d) =>
+      Thresholds(r, d)
   }.validate(
     c =>
       (for
@@ -94,7 +98,12 @@ object JsonCodecs:
   )
   given Encoder[Thresholds] = Encoder.forProduct2("review", "decline")(t => (t.review, t.decline))
   given Encoder[LogisticModel] = Encoder.forProduct6(
-    "version", "preprocessor", "intercept", "coefficients", "thresholds", "validation"
+    "version",
+    "preprocessor",
+    "intercept",
+    "coefficients",
+    "thresholds",
+    "validation"
   )(m => (m.version, m.preprocessor, m.intercept, m.coefficients, m.thresholds, m.validation))
   given Decoder[LogisticModel] = Decoder.instance { c =>
     for
@@ -106,7 +115,10 @@ object JsonCodecs:
       validation <- c.downField("validation").as[Option[Metrics.Report]]
       model <-
         if coefficients.size != pre.width then
-          Left(DecodingFailure(s"model has ${coefficients.size} coefficients for ${pre.width} columns", c.history))
+          Left(DecodingFailure(
+            s"model has ${coefficients.size} coefficients for ${pre.width} columns",
+            c.history
+          ))
         else Right(LogisticModel(version, pre, intercept, coefficients, thresholds, validation))
     yield model
   }

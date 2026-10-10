@@ -42,15 +42,22 @@ class EntityGraphSuite extends munit.FunSuite:
   test("hub nodes are reached but not expanded") {
     val config = GraphConfig(hubDegree = 3)
     val g = (1 to 10).foldLeft(EntityGraph.empty(config))((acc, i) =>
-      acc.record(tx(s"$i", card = s"c$i", account = s"a$i", device = None, ip = Some("198.51.100.1")))
+      acc.record(tx(
+        s"$i",
+        card = s"c$i",
+        account = s"a$i",
+        device = None,
+        ip = Some("198.51.100.1")
+      ))
     )
     val f = g.featuresFor("c1", now)
     assertEquals(f.linkedCards, 0)
   }
 
   test("node cap truncates the search and reports it") {
-    val g = (1 to 50).foldLeft(EntityGraph.empty(GraphConfig(maxNodes = 10, hubDegree = 1000)))((acc, i) =>
-      acc.record(tx(s"$i", card = s"c$i", account = s"a$i", device = Some("d"), ip = None))
+    val g = (1 to 50).foldLeft(EntityGraph.empty(GraphConfig(maxNodes = 10, hubDegree = 1000)))(
+      (acc, i) =>
+        acc.record(tx(s"$i", card = s"c$i", account = s"a$i", device = Some("d"), ip = None))
     )
     val f = g.featuresFor("c1", now)
     assert(f.truncated)

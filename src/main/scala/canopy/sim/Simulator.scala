@@ -20,15 +20,16 @@ final case class SimConfig(
 )
 
 final case class SimResult(transactions: Vector[Transaction], labels: Vector[Label]):
-  def fraudIds: Set[String] = labels.iterator.filter(_.outcome == Outcome.Fraud).map(_.transactionId).toSet
+  def fraudIds: Set[String] =
+    labels.iterator.filter(_.outcome == Outcome.Fraud).map(_.transactionId).toSet
 
 /**
  * Generates a labelled stream of card transactions with realistic fraud patterns.
  *
- * Legitimate behaviour: each cardholder has a home country and currency, one or two devices, a
- * home IP network, a handful of favourite merchants, a typical spend level and a daytime-heavy
- * activity rhythm. Noise is deliberate: people travel, buy new phones, and make legitimate
- * sub-$5 purchases, so no single rule separates the classes.
+ * Legitimate behaviour: each cardholder has a home country and currency, one or two devices, a home
+ * IP network, a handful of favourite merchants, a typical spend level and a daytime-heavy activity
+ * rhythm. Noise is deliberate: people travel, buy new phones, and make legitimate sub-$5 purchases,
+ * so no single rule separates the classes.
  *
  * Fraud behaviour:
  *   - card testing: a burst of tiny authorisations on a stolen card from a fraudster device,
@@ -36,13 +37,13 @@ final case class SimResult(transactions: Vector[Transaction], labels: Vector[Lab
  *   - account takeover: a new device in a foreign country spending big in risky categories;
  *   - rings: a few devices and one network cycling through many stolen cards over days.
  *
- * Chargeback labels arrive days after the fact and some fraud is never reported, which mirrors
- * the label delay and label noise a production model trains under.
+ * Chargeback labels arrive days after the fact and some fraud is never reported, which mirrors the
+ * label delay and label noise a production model trains under.
  */
 object Simulator:
-  private final case class Merchant(id: String, mcc: Int, cnp: Boolean)
+  final private case class Merchant(id: String, mcc: Int, cnp: Boolean)
 
-  private final case class Cardholder(
+  final private case class Cardholder(
       account: String,
       cards: Vector[String],
       country: CountryCode,
@@ -83,8 +84,10 @@ object Simulator:
 
   private val riskyMccs = Set(5732, 7995, 4829, 6051)
 
-  /** Imperative wrapper so generation code reads top to bottom; all randomness flows from one seed. */
-  private final class Rng(seed: Long):
+  /**
+   * Imperative wrapper so generation code reads top to bottom; all randomness flows from one seed.
+   */
+  final private class Rng(seed: Long):
     private var gen = SplitMix64(seed)
     def draw[A](r: Rand[A]): A =
       val (next, a) = r.run(gen)
@@ -113,7 +116,10 @@ object Simulator:
     def randomNetwork(): String = s"${11 + rng.int(212)}.${rng.int(256)}.${rng.int(256)}"
 
     def ip(network: String): IpAddress =
-      IpAddress.parse(s"$network.${1 + rng.int(254)}").fold(e => throw IllegalStateException(e), identity)
+      IpAddress.parse(s"$network.${1 + rng.int(254)}").fold(
+        e => throw IllegalStateException(e),
+        identity
+      )
 
     /** Daytime-weighted timestamp: 85% of activity between 08:00 and 22:00 UTC-local. */
     def activityTime(): Long =
@@ -162,7 +168,12 @@ object Simulator:
       val id = txId()
       val channel =
         if !merchant.cnp then Channel.Pos
-        else rng.draw(Rand.weighted(Seq(Channel.Ecommerce -> 0.7, Channel.InApp -> 0.25, Channel.Moto -> 0.05)))
+        else
+          rng.draw(Rand.weighted(Seq(
+            Channel.Ecommerce -> 0.7,
+            Channel.InApp -> 0.25,
+            Channel.Moto -> 0.05
+          )))
       val present = channel == Channel.Pos
       val tx = Transaction(
         id = id,
@@ -189,7 +200,8 @@ object Simulator:
       (0 until count).foreach { _ =>
         val traveling = rng.chance(if h.traveler then 0.35 else config.travelProbability)
         val country =
-          if traveling then CountryCode.unsafe(rng.pick(homeCountries.map(_._1).filterNot(_ == h.country.value)))
+          if traveling then
+            CountryCode.unsafe(rng.pick(homeCountries.map(_._1).filterNot(_ == h.country.value)))
           else h.country
         val device =
           if rng.chance(if traveling then 0.2 else config.newDeviceProbability) then
@@ -199,7 +211,17 @@ object Simulator:
         val usd = if small then 0.5 + rng.double() * 4 else rng.draw(Rand.logNormal(h.spendMu, 0.6))
         val merchant = if rng.chance(0.9) then rng.pick(h.merchants) else rng.pick(merchants)
         val network = if traveling then randomNetwork() else h.network
-        emit(h, rng.pick(h.cards), activityTime(), merchant, usd, Some(device), Some(ip(network)), Some(country), fraud = false)
+        emit(
+          h,
+          rng.pick(h.cards),
+          activityTime(),
+          merchant,
+          usd,
+          Some(device),
+          Some(ip(network)),
+          Some(country),
+          fraud = false
+        )
       }
     }
 
@@ -213,7 +235,17 @@ object Simulator:
         val merchant = if rng.chance(0.5) then transit else topUp
         (0 until 3 + rng.int(4)).foreach { _ =>
           t += 60_000L + rng.int(900_000)
-          emit(h, h.cards.head, t, merchant, 0.5 + rng.double() * 4, Some(h.devices.head), Some(ip(h.network)), Some(h.country), fraud = false)
+          emit(
+            h,
+            h.cards.head,
+            t,
+            merchant,
+            0.5 + rng.double() * 4,
+            Some(h.devices.head),
+            Some(ip(h.network)),
+            Some(h.country),
+            fraud = false
+          )
         }
       }
     }
@@ -234,11 +266,31 @@ object Simulator:
       (0 until probes).foreach { _ =>
         t += 20_000L + rng.int(150_000)
         val m = rng.pick(merchants.filter(_.cnp))
-        emit(victim, card, t, m, 0.5 + rng.double() * 2.5, Some(device), Some(ip(net)), Some(country), fraud = true)
+        emit(
+          victim,
+          card,
+          t,
+          m,
+          0.5 + rng.double() * 2.5,
+          Some(device),
+          Some(ip(net)),
+          Some(country),
+          fraud = true
+        )
       }
       (0 until 1 + rng.int(3)).foreach { _ =>
         t += 120_000L + rng.int(1_200_000)
-        emit(victim, card, t, rng.pick(riskyMerchants), 200 + rng.double() * 1300, Some(device), Some(ip(net)), Some(country), fraud = true)
+        emit(
+          victim,
+          card,
+          t,
+          rng.pick(riskyMerchants),
+          200 + rng.double() * 1300,
+          Some(device),
+          Some(ip(net)),
+          Some(country),
+          fraud = true
+        )
       }
     }
 
@@ -255,8 +307,19 @@ object Simulator:
         else activityTime()
       (0 until 1 + rng.int(3)).foreach { _ =>
         t += 60_000L + rng.int(3_600_000)
-        val m = if rng.chance(0.75) then rng.pick(riskyMerchants) else rng.pick(merchants.filter(_.cnp))
-        emit(victim, card, t, m, 300 + rng.double() * 2200, Some(device), Some(ip(net)), Some(country), fraud = true)
+        val m =
+          if rng.chance(0.75) then rng.pick(riskyMerchants) else rng.pick(merchants.filter(_.cnp))
+        emit(
+          victim,
+          card,
+          t,
+          m,
+          300 + rng.double() * 2200,
+          Some(device),
+          Some(ip(net)),
+          Some(country),
+          fraud = true
+        )
       }
     }
 
@@ -271,8 +334,17 @@ object Simulator:
         val base = activityTime()
         (0 until 1 + rng.int(4)).foreach { j =>
           val at = base + j * (600_000L + rng.int(7_200_000))
-          emit(victim, card, math.min(at, startMillis + periodMillis - 1), rng.pick(merchants.filter(_.cnp)),
-            50 + rng.double() * 350, Some(rng.pick(devices)), Some(ip(net)), Some(country), fraud = true)
+          emit(
+            victim,
+            card,
+            math.min(at, startMillis + periodMillis - 1),
+            rng.pick(merchants.filter(_.cnp)),
+            50 + rng.double() * 350,
+            Some(rng.pick(devices)),
+            Some(ip(net)),
+            Some(country),
+            fraud = true
+          )
         }
       }
     }

@@ -13,7 +13,11 @@ final case class Thresholds(review: Double, decline: Double):
  * traffic may land between the two thresholds.
  */
 object ThresholdTuner:
-  final case class Tuned(thresholds: Thresholds, declineConfusion: Metrics.Confusion, reviewRate: Double)
+  final case class Tuned(
+      thresholds: Thresholds,
+      declineConfusion: Metrics.Confusion,
+      reviewRate: Double
+  )
 
   def tune(
       scores: Array[Double],
@@ -42,7 +46,8 @@ object ThresholdTuner:
     val declined = scores.count(_ >= decline)
     val budget = math.floor(maxReviewRate * n).toInt
     val reviewIdx = math.min(n - 1, declined + budget - 1)
-    val candidate = if budget <= 0 || reviewIdx < declined then decline else scores(order(reviewIdx))
+    val candidate =
+      if budget <= 0 || reviewIdx < declined then decline else scores(order(reviewIdx))
     // If the cut lands inside a run of ties, step up so the budget is not exceeded.
     val review =
       if scores.count(s => s >= candidate && s < decline) > budget then

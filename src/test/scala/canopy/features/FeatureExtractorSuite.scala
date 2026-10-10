@@ -40,7 +40,9 @@ class FeatureExtractorSuite extends munit.FunSuite:
   }
 
   test("devices and networks count distinct cards") {
-    val txs = (1 to 5).toList.map(i => tx(s"t$i", card = s"card-$i", account = s"a-$i", at = t0.plusMinutes(i)))
+    val txs = (1 to 5).toList.map(i =>
+      tx(s"t$i", card = s"card-$i", account = s"a-$i", at = t0.plusMinutes(i))
+    )
     val (_, fvs) = run(txs)
     assertEquals(fvs.last.num("device.distinct_cards_24h"), Some(5.0))
     assertEquals(fvs.last.num("ip.distinct_cards_24h"), Some(5.0))
@@ -61,7 +63,9 @@ class FeatureExtractorSuite extends munit.FunSuite:
   }
 
   test("amount z-score flags a large deviation from the card's habit") {
-    val habit = (1 to 10).toList.map(i => tx(s"h$i", at = t0.plusHours(i.toLong), amount = s"${20 + i % 3}.00"))
+    val habit = (1 to 10).toList.map(i =>
+      tx(s"h$i", at = t0.plusHours(i.toLong), amount = s"${20 + i % 3}.00")
+    )
     val spike = tx("spike", at = t0.plusHours(12), amount = "900.00")
     val (_, fvs) = run(habit :+ spike)
     assert(fvs.last.num("card.amount_zscore").get > 5.0, fvs.last.num("card.amount_zscore"))
@@ -81,14 +85,23 @@ class FeatureExtractorSuite extends munit.FunSuite:
   }
 
   test("idle entities are evicted") {
-    val (state, _) = run(List(tx("t1"), tx("t2", card = "card-2", account = "a-2", device = Some("d-2"), at = t0.plusHours(24 * 50))))
-    val swept = state.evictIdle(t0.plusHours(24 * 50).toEpochMilli, FeatureConfig().idleRetentionMillis)
+    val (state, _) = run(List(
+      tx("t1"),
+      tx("t2", card = "card-2", account = "a-2", device = Some("d-2"), at = t0.plusHours(24 * 50))
+    ))
+    val swept =
+      state.evictIdle(t0.plusHours(24 * 50).toEpochMilli, FeatureConfig().idleRetentionMillis)
     assertEquals(swept.cards.keySet, Set("card-2"))
     assertEquals(swept.devices.keySet, Set("d-2"))
   }
 
   test("every emitted feature is declared in the schema with a matching type") {
-    val (_, fvs) = run(List(tx("t1"), tx("t2", at = t0.plusMinutes(1)), tx("t3", at = t0.plusMinutes(2)), tx("t4", at = t0.plusMinutes(3))))
+    val (_, fvs) = run(List(
+      tx("t1"),
+      tx("t2", at = t0.plusMinutes(1)),
+      tx("t3", at = t0.plusMinutes(2)),
+      tx("t4", at = t0.plusMinutes(3))
+    ))
     fvs.flatMap(_.values).foreach { (name, value) =>
       val declared = FeatureSchema.types.get(name)
       assert(declared.isDefined, s"$name missing from schema")

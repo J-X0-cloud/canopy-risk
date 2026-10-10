@@ -20,8 +20,9 @@ class MetricsSuite extends munit.FunSuite:
     val labels = Array.fill(300)(if rnd.nextDouble() < 0.3 then 1 else 0)
     val pos = scores.indices.filter(labels(_) == 1)
     val neg = scores.indices.filter(labels(_) == 0)
-    val pairs = for p <- pos; n <- neg yield
-      if scores(p) > scores(n) then 1.0 else if scores(p) == scores(n) then 0.5 else 0.0
+    val pairs =
+      for p <- pos; n <- neg
+      yield if scores(p) > scores(n) then 1.0 else if scores(p) == scores(n) then 0.5 else 0.0
     assertEqualsDouble(Metrics.auc(scores, labels), pairs.sum / pairs.size, 1e-12)
   }
 
@@ -40,7 +41,11 @@ class MetricsSuite extends munit.FunSuite:
     val y = Array(1, 0)
     assertEqualsDouble(Metrics.logLoss(s, y), -math.log(0.8), 1e-12)
     assertEqualsDouble(Metrics.brier(s, y), 0.04, 1e-12)
-    assertEqualsDouble(Metrics.expectedCalibrationError(Array(0.25, 0.25, 0.25, 0.25), Array(1, 0, 0, 0)), 0.0, 1e-12)
+    assertEqualsDouble(
+      Metrics.expectedCalibrationError(Array(0.25, 0.25, 0.25, 0.25), Array(1, 0, 0, 0)),
+      0.0,
+      1e-12
+    )
     assert(Metrics.logLoss(Array(0.0), Array(1)).isFinite)
   }
 
@@ -71,6 +76,11 @@ class MetricsSuite extends munit.FunSuite:
   }
 
   test("tuner declines nothing when no threshold is precise enough") {
-    val tuned = ThresholdTuner.tune(Array(0.9, 0.8), Array(0, 1), declinePrecision = 0.99, maxReviewRate = 0.5)
+    val tuned = ThresholdTuner.tune(
+      Array(0.9, 0.8),
+      Array(0, 1),
+      declinePrecision = 0.99,
+      maxReviewRate = 0.5
+    )
     assertEqualsDouble(tuned.thresholds.decline, 1.0, 0)
   }

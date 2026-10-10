@@ -1,8 +1,8 @@
 package canopy.features
 
 /**
- * The catalogue of features the extractor produces. Rules are type checked against it and the
- * model may only reference numeric or boolean entries.
+ * The catalogue of features the extractor produces. Rules are type checked against it and the model
+ * may only reference numeric or boolean entries.
  */
 object FeatureSchema:
   final case class Spec(name: String, tpe: FeatureType, description: String)
@@ -52,8 +52,12 @@ object FeatureSchema:
 
   /**
    * Features suitable as model inputs, in a stable order. Raw `amount` (mixed currencies), the
-   * already-logged amount (the preprocessor chooses its own transform) and the categorical MCC
-   * code are excluded.
+   * already-logged amount (the preprocessor chooses its own transform) and the categorical MCC code
+   * are excluded.
    */
   val modelInputs: Vector[String] =
-    all.filter(s => s.tpe != Text).map(_.name).filterNot(Set("amount", "log_amount_usd", "merchant.mcc")).toVector
+    all.filter(s => s.tpe != Text).map(_.name).filterNot(Set(
+      "amount",
+      "log_amount_usd",
+      "merchant.mcc"
+    )).toVector

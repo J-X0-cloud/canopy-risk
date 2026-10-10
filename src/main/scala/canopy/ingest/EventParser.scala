@@ -9,8 +9,8 @@ import java.time.Instant
 import java.time.format.DateTimeParseException
 
 /**
- * Validates inbound JSON into domain values, reporting every problem with a payload at once
- * rather than only the first, which is what API clients integrating for the first time need.
+ * Validates inbound JSON into domain values, reporting every problem with a payload at once rather
+ * than only the first, which is what API clients integrating for the first time need.
  */
 object EventParser:
   type Result[A] = ValidatedNel[String, A]
@@ -25,10 +25,13 @@ object EventParser:
 
   private def optString(c: ACursor, name: String): Result[Option[String]] =
     c.downField(name).focus.filterNot(_.isNull) match
-      case None    => None.validNel
-      case Some(j) => j.asString.filter(_.trim.nonEmpty).toValidNel(s"$name: must be a non-empty string").map(Some(_))
+      case None => None.validNel
+      case Some(j) => j.asString.filter(
+          _.trim.nonEmpty
+        ).toValidNel(s"$name: must be a non-empty string").map(Some(_))
 
-  private def from[A](name: String)(e: Either[String, A]): Result[A] = e.leftMap(m => s"$name: $m").toValidatedNel
+  private def from[A](name: String)(e: Either[String, A]): Result[A] =
+    e.leftMap(m => s"$name: $m").toValidatedNel
 
   private def instant(c: ACursor, name: String): Result[Instant] =
     string(c, name).andThen { s =>
@@ -52,7 +55,9 @@ object EventParser:
     else
       val currency = string(c, "currency").andThen(s => from("currency")(Currency.parse(s)))
       val mcc = field(c, "mcc").andThen { j =>
-        j.asNumber.flatMap(_.toInt).filter(m => m >= 0 && m <= 9999).toValidNel("mcc: must be an integer 0-9999")
+        j.asNumber.flatMap(
+          _.toInt
+        ).filter(m => m >= 0 && m <= 9999).toValidNel("mcc: must be an integer 0-9999")
       }
       (
         string(c, "id"),
@@ -65,7 +70,10 @@ object EventParser:
         string(c, "channel").andThen(s => from("channel")(Channel.parse(s))),
         optString(c, "device_id"),
         optString(c, "ip").andThen(_.traverse(s => from("ip")(IpAddress.parse(s)))),
-        optString(c, "ip_country").andThen(_.traverse(s => from("ip_country")(CountryCode.parse(s)))),
+        optString(
+          c,
+          "ip_country"
+        ).andThen(_.traverse(s => from("ip_country")(CountryCode.parse(s)))),
         string(c, "billing_country").andThen(s => from("billing_country")(CountryCode.parse(s)))
       ).mapN(Transaction.apply)
 
@@ -79,4 +87,6 @@ object EventParser:
     ).mapN(Label.apply)
 
   def parseLine[A](line: String, decode: Json => Result[A]): Either[NonEmptyList[String], A] =
-    io.circe.parser.parse(line).leftMap(e => NonEmptyList.one(s"invalid JSON: ${e.message}")).flatMap(decode(_).toEither)
+    io.circe.parser.parse(line).leftMap(e =>
+      NonEmptyList.one(s"invalid JSON: ${e.message}")
+    ).flatMap(decode(_).toEither)

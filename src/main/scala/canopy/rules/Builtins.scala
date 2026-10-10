@@ -18,10 +18,14 @@ object Builtins:
     /** Checks argument types and returns the result type, or a message describing the mismatch. */
     def resultType(args: List[Type]): Either[String, Type] =
       import Type.*
-      def arity(n: Int) = if args.size == n then Right(()) else Left(s"expects $n argument(s), got ${args.size}")
+      def arity(n: Int) =
+        if args.size == n then Right(()) else Left(s"expects $n argument(s), got ${args.size}")
       this match
         case Abs | Log1p | Sqrt =>
-          arity(1).flatMap(_ => if args.head == Num then Right(Num) else Left(s"expects a number, got ${args.head.show}"))
+          arity(1).flatMap(_ =>
+            if args.head == Num then Right(Num)
+            else Left(s"expects a number, got ${args.head.show}")
+          )
         case Min | Max =>
           if args.size < 2 then Left(s"expects at least 2 arguments, got ${args.size}")
           else if args.forall(_ == Num) then Right(Num)
@@ -30,9 +34,13 @@ object Builtins:
         case Coalesce =>
           if args.size < 2 then Left(s"expects at least 2 arguments, got ${args.size}")
           else if args.forall(_ == args.head) then Right(args.head)
-          else Left(s"all arguments must have the same type, got ${args.map(_.show).mkString(", ")}")
+          else
+            Left(s"all arguments must have the same type, got ${args.map(_.show).mkString(", ")}")
         case Lower =>
-          arity(1).flatMap(_ => if args.head == Str then Right(Str) else Left(s"expects a string, got ${args.head.show}"))
+          arity(1).flatMap(_ =>
+            if args.head == Str then Right(Str)
+            else Left(s"expects a string, got ${args.head.show}")
+          )
         case StartsWith | Contains =>
           arity(2).flatMap(_ =>
             if args.forall(_ == Str) then Right(Bool)

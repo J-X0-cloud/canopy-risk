@@ -3,7 +3,14 @@ package canopy.ml
 import canopy.sim.{SimConfig, Simulator}
 
 class TrainerSuite extends munit.FunSuite:
-  private lazy val sim = Simulator.run(SimConfig(seed = 3, cardholders = 600, days = 21, cardTestingAttacks = 25, takeovers = 25, fraudRings = 4))
+  private lazy val sim = Simulator.run(SimConfig(
+    seed = 3,
+    cardholders = 600,
+    days = 21,
+    cardTestingAttacks = 25,
+    takeovers = 25,
+    fraudRings = 4
+  ))
   private lazy val rows = Trainer.buildRows(sim.transactions, sim.labels)
 
   test("rows line up with transactions and carry the eventual label") {

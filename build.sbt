@@ -43,13 +43,13 @@ lazy val root = (project in file("."))
     assembly / mainClass := Some("canopy.Main"),
     assembly / assemblyJarName := "canopy-risk.jar",
     assembly / assemblyMergeStrategy := {
-      case PathList("META-INF", "versions", _*)              => MergeStrategy.first
-      case PathList("META-INF", "MANIFEST.MF")               => MergeStrategy.discard
+      case PathList("META-INF", "versions", _*) => MergeStrategy.first
+      case PathList("META-INF", "MANIFEST.MF")  => MergeStrategy.discard
       case PathList("META-INF", xs @ _*) if xs.lastOption.exists(_.endsWith(".SF")) =>
         MergeStrategy.discard
-      case PathList("META-INF", "services", _*)              => MergeStrategy.concat
-      case PathList("META-INF", _*)                          => MergeStrategy.discard
-      case "module-info.class"                               => MergeStrategy.discard
+      case PathList("META-INF", "services", _*) => MergeStrategy.concat
+      case PathList("META-INF", _*)             => MergeStrategy.discard
+      case "module-info.class"                  => MergeStrategy.discard
       case x =>
         val old = (assembly / assemblyMergeStrategy).value
         old(x)

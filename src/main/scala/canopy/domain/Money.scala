@@ -45,7 +45,9 @@ object Money:
     else
       val scaled = BigDecimal(amount.bigDecimal.movePointRight(currency.exponent))
       if !scaled.isWhole then
-        Left(s"amount $amount has more than ${currency.exponent} decimal places for ${currency.code}")
+        Left(
+          s"amount $amount has more than ${currency.exponent} decimal places for ${currency.code}"
+        )
       else
         val units = scaled.setScale(0, RoundingMode.UNNECESSARY)
         if !units.isValidLong then Left(s"amount $amount is out of range")

@@ -22,7 +22,10 @@ class ModelCodecSuite extends CatsEffectSuite:
     Io.loadModel(None).map { model =>
       val shortened = model.asJson.mapObject(_.add("coefficients", Vector(1.0).asJson))
       assert(decode[LogisticModel](shortened.noSpaces).isLeft)
-      val badThresholds = model.asJson.mapObject(_.add("thresholds", io.circe.Json.obj("review" -> 0.9.asJson, "decline" -> 0.1.asJson)))
+      val badThresholds = model.asJson.mapObject(_.add(
+        "thresholds",
+        io.circe.Json.obj("review" -> 0.9.asJson, "decline" -> 0.1.asJson)
+      ))
       assert(decode[LogisticModel](badThresholds.noSpaces).isLeft)
     }
   }

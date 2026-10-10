@@ -22,10 +22,10 @@ final case class Policy(
  *   2. the model probability after rule score adjustments, cut at the review and decline
  *      thresholds.
  *
- * Score adjustments are applied in log-odds space so several adjustments compose additively and
- * the result is always a valid probability. An approve rule is ignored when the adjusted model
- * probability is at or above `approveCeiling`; allow-lists should not wave through the most
- * obvious fraud.
+ * Score adjustments are applied in log-odds space so several adjustments compose additively and the
+ * result is always a valid probability. An approve rule is ignored when the adjusted model
+ * probability is at or above `approveCeiling`; allow-lists should not wave through the most obvious
+ * fraud.
  */
 object DecisionEngine:
   def decide(transactionId: String, score: Score, firings: List[Firing], policy: Policy): Decision =
@@ -42,7 +42,8 @@ object DecisionEngine:
     val hard = firings.filter(_.action.isHard)
     val topGroup = hard.headOption.map(h => hard.filter(_.priority == h.priority)).getOrElse(Nil)
     val ruleChoice = topGroup.maxByOption(f => verdictOf(f.action).severity)
-    val effectiveRule = ruleChoice.filterNot(f => f.action == Action.Approve && finalScore >= policy.approveCeiling)
+    val effectiveRule =
+      ruleChoice.filterNot(f => f.action == Action.Approve && finalScore >= policy.approveCeiling)
 
     val (verdict, decidedBy) = effectiveRule match
       case Some(f) => (verdictOf(f.action), s"rule:${f.rule}")
@@ -62,14 +63,16 @@ object DecisionEngine:
     val summary = effectiveRule match
       case Some(f) =>
         val overridden =
-          if verdictOf(f.action) != modelVerdict then s" (model alone would ${modelVerdict.wire})" else ""
+          if verdictOf(f.action) != modelVerdict then s" (model alone would ${modelVerdict.wire})"
+          else ""
         s"${pastTense(verdict)} by rule ${f.rule}: ${f.reason}$overridden"
       case None =>
         val factors =
           if risk.isEmpty then "" else s"; main risk factors: ${risk.map(_.feature).mkString(", ")}"
         val cut = verdict match
           case Verdict.Decline => f"at or above the decline threshold ${thresholds.decline}%.3f"
-          case Verdict.Review  => f"between the review ${thresholds.review}%.3f and decline ${thresholds.decline}%.3f thresholds"
+          case Verdict.Review =>
+            f"between the review ${thresholds.review}%.3f and decline ${thresholds.decline}%.3f thresholds"
           case Verdict.Approve => f"below the review threshold ${thresholds.review}%.3f"
         val ignored = ruleChoice.filter(_ => effectiveRule.isEmpty)
           .fold("")(f => s"; approve rule ${f.rule} ignored because the score exceeds the ceiling")

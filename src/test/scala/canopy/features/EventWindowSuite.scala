@@ -56,7 +56,8 @@ class EventWindowSuite extends munit.FunSuite:
   test("sum agrees with a brute-force reference on random streams") {
     val rnd = scala.util.Random(42)
     (1 to 25).foreach { _ =>
-      val events = (1 to 200).map(_ => (base + rnd.nextLong(48 * Hour), rnd.nextDouble() * 100, "k"))
+      val events =
+        (1 to 200).map(_ => (base + rnd.nextLong(48 * Hour), rnd.nextDouble() * 100, "k"))
       val w = events.foldLeft(EventWindow.empty(6 * Hour))((acc, e) => acc.add(e._1, e._2, e._3))
       val retained = w.entries.map(e => (e.ts, e.value))
       val now = w.newest.get

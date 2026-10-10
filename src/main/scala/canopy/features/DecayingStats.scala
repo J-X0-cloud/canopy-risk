@@ -34,9 +34,9 @@ final case class DecayingStats(
   def stdDev: Double = math.sqrt(variance)
 
   /**
-   * Standard score of `x` against the history, or None while fewer than `minObservations` have
-   * been seen. A variance floor stops a card that always spends the same amount from producing
-   * enormous scores on a trivially different amount.
+   * Standard score of `x` against the history, or None while fewer than `minObservations` have been
+   * seen. A variance floor stops a card that always spends the same amount from producing enormous
+   * scores on a trivially different amount.
    */
   def zScore(x: Double, minObservations: Int = 3, varianceFloor: Double = 0.05): Option[Double] =
     if observations < minObservations then None

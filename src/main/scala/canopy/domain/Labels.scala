@@ -2,7 +2,9 @@ package canopy.domain
 
 import java.time.Instant
 
-/** Ground truth that arrives after the fact: chargebacks, confirmed fraud reports, cleared disputes. */
+/**
+ * Ground truth that arrives after the fact: chargebacks, confirmed fraud reports, cleared disputes.
+ */
 enum Outcome(val wire: String):
   case Fraud extends Outcome("fraud")
   case Legit extends Outcome("legit")

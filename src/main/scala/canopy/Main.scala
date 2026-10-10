@@ -14,8 +14,10 @@ object Main
       version = "0.1.0"
     ):
 
-  private val modelOpt = Opts.option[String]("model", "Model JSON file (defaults to the bundled model).").orNone
-  private val rulesOpt = Opts.option[String]("rules", "Rules file (defaults to the bundled rules).").orNone
+  private val modelOpt =
+    Opts.option[String]("model", "Model JSON file (defaults to the bundled model).").orNone
+  private val rulesOpt =
+    Opts.option[String]("rules", "Rules file (defaults to the bundled rules).").orNone
 
   private val simOpts: Opts[SimConfig] =
     (
@@ -61,8 +63,14 @@ object Main
       fromFiles.orElse(fromSim),
       Opts.option[String]("out", "Where to write the model."),
       Opts.option[Double]("l2", "L2 penalty.").withDefault(1e-3),
-      Opts.option[Double]("decline-precision", "Required precision at the decline threshold.").withDefault(0.8),
-      Opts.option[Double]("max-review-rate", "Share of traffic the review queue can absorb.").withDefault(0.02)
+      Opts.option[Double](
+        "decline-precision",
+        "Required precision at the decline threshold."
+      ).withDefault(0.8),
+      Opts.option[Double](
+        "max-review-rate",
+        "Share of traffic the review queue can absorb."
+      ).withDefault(0.02)
     ).mapN(Commands.train)
   }
 
@@ -73,7 +81,10 @@ object Main
       modelOpt,
       rulesOpt,
       Opts.option[String]("decisions", "Write decisions as NDJSON to this file.").orNone,
-      Opts.option[Long]("max-lateness-ms", "Reorder window for out-of-order events.").withDefault(60_000L)
+      Opts.option[Long](
+        "max-lateness-ms",
+        "Reorder window for out-of-order events."
+      ).withDefault(60_000L)
     ).mapN(Commands.replay)
   }
 

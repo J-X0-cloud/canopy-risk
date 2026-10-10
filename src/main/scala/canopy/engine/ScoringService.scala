@@ -14,7 +14,13 @@ final case class Configuration(model: LogisticModel, rules: RuleSet, policy: Pol
 /** Engine state plus the idempotency cache, updated together so retries cannot race. */
 final case class LiveState(engine: EngineState, recent: IdempotencyCache[Decision])
 
-final case class ServiceStats(processed: Long, entities: Int, graphNodes: Int, graphEdges: Int, cached: Int)
+final case class ServiceStats(
+    processed: Long,
+    entities: Int,
+    graphNodes: Int,
+    graphEdges: Int,
+    cached: Int
+)
 
 /**
  * The stateful heart of the engine.
@@ -64,13 +70,16 @@ final class ScoringService private (
     yield evaluate(tx, pipeline.peek(live.engine, tx), conf)
 
   /** Feature vector for a transaction without recording it, for debugging rules. */
-  def features(tx: Transaction): IO[FeatureVector] = state.get.map(live => pipeline.peek(live.engine, tx))
+  def features(tx: Transaction): IO[FeatureVector] =
+    state.get.map(live => pipeline.peek(live.engine, tx))
 
-  def label(l: Label): IO[Unit] = state.update(live => live.copy(engine = pipeline.label(live.engine, l))) *> metrics.recordLabel
+  def label(l: Label): IO[Unit] =
+    state.update(live => live.copy(engine = pipeline.label(live.engine, l))) *> metrics.recordLabel
 
   def current: IO[Configuration] = configuration.get
 
-  def validateRules(source: String): IO[Either[List[Diagnostic], RuleSet]] = IO(RuleSet.compile(source))
+  def validateRules(source: String): IO[Either[List[Diagnostic], RuleSet]] =
+    IO(RuleSet.compile(source))
 
   /** Compiles and, if valid, atomically installs a new rule program. */
   def replaceRules(source: String): IO[Either[List[Diagnostic], RuleSet]] =
@@ -80,12 +89,20 @@ final class ScoringService private (
     }
 
   def replaceModel(model: LogisticModel): IO[Unit] =
-    configuration.update(c => c.copy(model = model, policy = c.policy.copy(thresholds = model.thresholds)))
+    configuration.update(c =>
+      c.copy(model = model, policy = c.policy.copy(thresholds = model.thresholds))
+    )
 
   def stats: IO[ServiceStats] =
     state.get.map { live =>
       val s = live.engine
-      ServiceStats(s.processed, s.entityCount, s.graph.nodeCount, s.graph.edgeCount, live.recent.size)
+      ServiceStats(
+        s.processed,
+        s.entityCount,
+        s.graph.nodeCount,
+        s.graph.edgeCount,
+        live.recent.size
+      )
     }
 
 object ScoringService:

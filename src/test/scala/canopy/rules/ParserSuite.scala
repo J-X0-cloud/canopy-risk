@@ -82,7 +82,8 @@ class ParserSuite extends munit.FunSuite:
   }
 
   test("score actions accept explicit signs") {
-    val program = Parser.parse("rule a when true then score -0.75\nrule b when true then score +2").toOption.get
+    val program =
+      Parser.parse("rule a when true then score -0.75\nrule b when true then score +2").toOption.get
     assertEquals(program.rules.map(_.action), List(Action.Score(-0.75), Action.Score(2)))
   }
 
@@ -95,8 +96,12 @@ class ParserSuite extends munit.FunSuite:
   }
 
   test("reserved words cannot name rules and rule names cannot contain dots") {
-    assert(Parser.parse("rule when when true then approve").swap.toOption.get.message.contains("reserved"))
-    assert(Parser.parse("rule a.b when true then approve").swap.toOption.get.message.contains("'.'"))
+    assert(Parser.parse(
+      "rule when when true then approve"
+    ).swap.toOption.get.message.contains("reserved"))
+    assert(
+      Parser.parse("rule a.b when true then approve").swap.toOption.get.message.contains("'.'")
+    )
   }
 
   test("fractional priority is rejected") {

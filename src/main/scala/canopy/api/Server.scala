@@ -23,8 +23,12 @@ object Server:
 
   def resource(service: ScoringService, host: String, port: Int): Resource[IO, Http4sServer] =
     for
-      h <- Resource.eval(IO.fromOption(Host.fromString(host))(IllegalArgumentException(s"bad host $host")))
-      p <- Resource.eval(IO.fromOption(Port.fromInt(port))(IllegalArgumentException(s"bad port $port")))
+      h <- Resource.eval(
+        IO.fromOption(Host.fromString(host))(IllegalArgumentException(s"bad host $host"))
+      )
+      p <- Resource.eval(
+        IO.fromOption(Port.fromInt(port))(IllegalArgumentException(s"bad port $port"))
+      )
       server <- EmberServerBuilder
         .default[IO]
         .withHost(h)

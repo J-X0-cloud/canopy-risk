@@ -3,7 +3,14 @@ package canopy.sim
 import canopy.domain.Outcome
 
 class SimulatorSuite extends munit.FunSuite:
-  private val small = SimConfig(seed = 11, cardholders = 150, days = 10, cardTestingAttacks = 5, takeovers = 5, fraudRings = 2)
+  private val small = SimConfig(
+    seed = 11,
+    cardholders = 150,
+    days = 10,
+    cardTestingAttacks = 5,
+    takeovers = 5,
+    fraudRings = 2
+  )
 
   test("same seed gives an identical dataset; a different seed does not") {
     val a = Simulator.run(small)

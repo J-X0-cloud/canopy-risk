@@ -47,14 +47,16 @@ enum Action:
   case Approve
   case Review
   case Decline
+
   /** Additive adjustment to the model's log-odds. */
   case Score(delta: Double)
 
   def render: String = this match
-    case Approve  => "approve"
-    case Review   => "review"
-    case Decline  => "decline"
-    case Score(d) => if d >= 0 then s"score +${Printer.number(d)}" else s"score ${Printer.number(d)}"
+    case Approve => "approve"
+    case Review  => "review"
+    case Decline => "decline"
+    case Score(d) =>
+      if d >= 0 then s"score +${Printer.number(d)}" else s"score ${Printer.number(d)}"
 
   def isHard: Boolean = this match
     case Score(_) => false

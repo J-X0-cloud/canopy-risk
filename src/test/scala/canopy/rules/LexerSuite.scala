@@ -20,13 +20,16 @@ class LexerSuite extends munit.FunSuite:
   }
 
   test("numbers support decimals, exponents and digit separators") {
-    assertEquals(toks("1_000 2.5 1e3 4.5E-2"), List(
-      Tok.Num(1000, "1_000"),
-      Tok.Num(2.5, "2.5"),
-      Tok.Num(1000, "1e3"),
-      Tok.Num(0.045, "4.5E-2"),
-      Tok.Eof
-    ))
+    assertEquals(
+      toks("1_000 2.5 1e3 4.5E-2"),
+      List(
+        Tok.Num(1000, "1_000"),
+        Tok.Num(2.5, "2.5"),
+        Tok.Num(1000, "1e3"),
+        Tok.Num(0.045, "4.5E-2"),
+        Tok.Eof
+      )
+    )
   }
 
   test("a trailing 'e' without digits is not swallowed into the number") {
@@ -66,7 +69,15 @@ class LexerSuite extends munit.FunSuite:
   }
 
   test("two-character operators win over their one-character prefixes") {
-    assertEquals(toks("<= < == = !="), List(
-      Tok.Sym("<="), Tok.Sym("<"), Tok.Sym("=="), Tok.Sym("="), Tok.Sym("!="), Tok.Eof
-    ))
+    assertEquals(
+      toks("<= < == = !="),
+      List(
+        Tok.Sym("<="),
+        Tok.Sym("<"),
+        Tok.Sym("=="),
+        Tok.Sym("="),
+        Tok.Sym("!="),
+        Tok.Eof
+      )
+    )
   }

@@ -7,7 +7,9 @@ class PreprocessorSuite extends munit.FunSuite:
     pairs.foldLeft(FeatureVector.empty)((v, p) => v.withNum(p._1, p._2))
 
   test("skewed non-negative features get a log transform, symmetric ones do not") {
-    val rows = (1 to 200).map(i => fv("count" -> (if i % 20 == 0 then 500.0 else 1.0), "sym" -> (i % 7 - 3.0)))
+    val rows = (1 to 200).map(i =>
+      fv("count" -> (if i % 20 == 0 then 500.0 else 1.0), "sym" -> (i % 7 - 3.0))
+    )
     val pre = Preprocessor.fit(Vector("count", "sym"), rows)
     assertEquals(pre.specs.map(_.transform), Vector(Transform.Log1p, Transform.Identity))
   }

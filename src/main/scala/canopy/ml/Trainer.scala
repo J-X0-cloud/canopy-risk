@@ -4,7 +4,12 @@ import canopy.domain.{Label, Outcome, Transaction}
 import canopy.engine.{EngineState, FeaturePipeline}
 import canopy.features.{FeatureSchema, FeatureVector}
 
-final case class LabeledRow(transactionId: String, timestamp: Long, features: FeatureVector, label: Int)
+final case class LabeledRow(
+    transactionId: String,
+    timestamp: Long,
+    features: FeatureVector,
+    label: Int
+)
 
 final case class TrainingResult(
     model: LogisticModel,
@@ -27,9 +32,9 @@ final case class TrainerConfig(
  * Offline training: replays history through the serving feature pipeline, splits by time, fits
  * preprocessing and a logistic model on the earlier part, and measures and tunes on the later.
  *
- * Chargeback labels feed the entity graph only once the replay clock has passed their report
- * time, so graph features at training time contain exactly what serving would have known. The
- * target itself is the eventual outcome, which is the point of supervised training.
+ * Chargeback labels feed the entity graph only once the replay clock has passed their report time,
+ * so graph features at training time contain exactly what serving would have known. The target
+ * itself is the eventual outcome, which is the point of supervised training.
  */
 object Trainer:
   def buildRows(
@@ -44,12 +49,20 @@ object Trainer:
     var state: EngineState = pipeline.emptyState
     var nextLabel = 0
     ordered.foreach { tx =>
-      while nextLabel < pendingLabels.size && !pendingLabels(nextLabel).reportedAt.isAfter(tx.timestamp) do
+      while nextLabel < pendingLabels.size && !pendingLabels(
+          nextLabel
+        ).reportedAt.isAfter(tx.timestamp)
+      do
         state = pipeline.label(state, pendingLabels(nextLabel))
         nextLabel += 1
       val (next, fv) = pipeline.observe(state, tx)
       state = next
-      out += LabeledRow(tx.id, tx.timestamp.toEpochMilli, fv, if fraud.contains(tx.id) then 1 else 0)
+      out += LabeledRow(
+        tx.id,
+        tx.timestamp.toEpochMilli,
+        fv,
+        if fraud.contains(tx.id) then 1 else 0
+      )
     }
     out.result()
 
@@ -73,13 +86,22 @@ object Trainer:
     val x = trainRows.map(r => pre.row(r.features)).toArray
     val y = trainRows.map(_.label).toArray
     val fit = LogisticRegression.fit(x, y, config.train)
-    val provisional = LogisticModel(version, pre, fit.intercept, fit.coefficients.toVector, Thresholds(0.5, 0.9), None)
-    def scores(rs: Vector[LabeledRow]) = rs.map(r => provisional.score(r.features).probability).toArray
+    val provisional = LogisticModel(
+      version,
+      pre,
+      fit.intercept,
+      fit.coefficients.toVector,
+      Thresholds(0.5, 0.9),
+      None
+    )
+    def scores(rs: Vector[LabeledRow]) =
+      rs.map(r => provisional.score(r.features).probability).toArray
     val trainScores = scores(trainRows)
     val validScores = scores(validRows)
     val validLabels = validRows.map(_.label).toArray
     val validationReport = Metrics.report(validScores, validLabels)
-    val tuned = ThresholdTuner.tune(validScores, validLabels, config.declinePrecision, config.maxReviewRate)
+    val tuned =
+      ThresholdTuner.tune(validScores, validLabels, config.declinePrecision, config.maxReviewRate)
     TrainingResult(
       model = provisional.copy(thresholds = tuned.thresholds, validation = Some(validationReport)),
       fit = fit,

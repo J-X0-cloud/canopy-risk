@@ -4,7 +4,10 @@ class LinalgSuite extends munit.FunSuite:
   test("cholesky reconstructs a known SPD matrix") {
     val a = Array(Array(4.0, 12.0, -16.0), Array(12.0, 37.0, -43.0), Array(-16.0, -43.0, 98.0))
     val l = Linalg.cholesky(a).get
-    assertEquals(l.map(_.toVector).toVector, Vector(Vector(2.0, 0.0, 0.0), Vector(6.0, 1.0, 0.0), Vector(-8.0, 5.0, 3.0)))
+    assertEquals(
+      l.map(_.toVector).toVector,
+      Vector(Vector(2.0, 0.0, 0.0), Vector(6.0, 1.0, 0.0), Vector(-8.0, 5.0, 3.0))
+    )
   }
 
   test("cholesky rejects an indefinite matrix") {

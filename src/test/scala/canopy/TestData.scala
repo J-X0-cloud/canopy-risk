@@ -30,7 +30,8 @@ object TestData:
       cardId = card,
       merchantId = merchant,
       mcc = mcc,
-      amount = Money.fromString(amount, currency).fold(e => throw IllegalArgumentException(e), identity),
+      amount =
+        Money.fromString(amount, currency).fold(e => throw IllegalArgumentException(e), identity),
       channel = channel,
       deviceId = device,
       ip = ip.map(s => IpAddress.parse(s).fold(e => throw IllegalArgumentException(e), identity)),

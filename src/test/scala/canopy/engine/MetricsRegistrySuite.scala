@@ -5,7 +5,15 @@ import munit.CatsEffectSuite
 
 class MetricsRegistrySuite extends CatsEffectSuite:
   private def decision(v: Verdict, hits: List[String]) =
-    Decision("t", v, 0.1, 0.1, "model", Explanation("", Nil, Nil, hits.map(h => RuleHit(h, "review", "r"))), Nil)
+    Decision(
+      "t",
+      v,
+      0.1,
+      0.1,
+      "model",
+      Explanation("", Nil, Nil, hits.map(h => RuleHit(h, "review", "r"))),
+      Nil
+    )
 
   test("histogram buckets and quantiles") {
     val h = List(0.0002, 0.0002, 0.003, 0.2, 5.0).foldLeft(Histogram.empty())(_.observe(_))

@@ -21,10 +21,14 @@ class RuleSetSuite extends munit.FunSuite:
       |  then approve
       |""".stripMargin
 
-  private val rules = RuleSet.compile(source).fold(ds => fail(RuleSet.renderErrors(source, ds)), identity)
+  private val rules =
+    RuleSet.compile(source).fold(ds => fail(RuleSet.renderErrors(source, ds)), identity)
 
   test("rules are ordered by priority, then source order") {
-    assertEquals(rules.rules.map(_.name).toList, List("card_testing", "trusted", "low_priority_score"))
+    assertEquals(
+      rules.rules.map(_.name).toList,
+      List("card_testing", "trusted", "low_priority_score")
+    )
   }
 
   test("only definitely-true conditions fire") {
@@ -45,7 +49,10 @@ class RuleSetSuite extends munit.FunSuite:
   }
 
   test("rules without a reason fall back to their name") {
-    val fv = FeatureVector(Map("card.age_days" -> FeatureValue.Num(400), "geo_mismatch" -> FeatureValue.Bool(false)))
+    val fv = FeatureVector(Map(
+      "card.age_days" -> FeatureValue.Num(400),
+      "geo_mismatch" -> FeatureValue.Bool(false)
+    ))
     assertEquals(rules.evaluate(fv).map(_.reason), List("trusted"))
   }
 

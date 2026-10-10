@@ -4,13 +4,19 @@ import canopy.sim.{Rand, SplitMix64}
 
 class LogisticRegressionSuite extends munit.FunSuite:
   /** Draws data from a known logistic model. */
-  private def synthetic(n: Int, beta0: Double, beta: Array[Double], seed: Long): (Array[Array[Double]], Array[Int]) =
-    val gen = for
-      xs <- Rand.replicate(beta.length, Rand.gaussian)
-      u <- Rand.double
-    yield
-      val z = beta0 + xs.zip(beta).map(_ * _).sum
-      (xs.toArray, if u < LogisticRegression.sigmoid(z) then 1 else 0)
+  private def synthetic(
+      n: Int,
+      beta0: Double,
+      beta: Array[Double],
+      seed: Long
+  ): (Array[Array[Double]], Array[Int]) =
+    val gen =
+      for
+        xs <- Rand.replicate(beta.length, Rand.gaussian)
+        u <- Rand.double
+      yield
+        val z = beta0 + xs.zip(beta).map(_ * _).sum
+        (xs.toArray, if u < LogisticRegression.sigmoid(z) then 1 else 0)
     val rows = Rand.replicate(n, gen).run(SplitMix64(seed))._2
     (rows.map(_._1).toArray, rows.map(_._2).toArray)
 
@@ -42,7 +48,9 @@ class LogisticRegressionSuite extends munit.FunSuite:
     val (x, y) = synthetic(30_000, -4.0, Array(1.0), seed = 3)
     val base = y.sum.toDouble / y.length
     val weighted = LogisticRegression.fit(x, y)
-    val meanPred = x.map(r => LogisticRegression.sigmoid(weighted.intercept + weighted.coefficients(0) * r(0))).sum / x.length
+    val meanPred = x.map(r =>
+      LogisticRegression.sigmoid(weighted.intercept + weighted.coefficients(0) * r(0))
+    ).sum / x.length
     assertEqualsDouble(meanPred, base, base * 0.25)
   }
 

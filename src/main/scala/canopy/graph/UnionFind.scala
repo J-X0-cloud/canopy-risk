@@ -1,8 +1,8 @@
 package canopy.graph
 
 /**
- * Disjoint-set forest with union by rank and path halving. Mutable by design: it is created,
- * filled and read inside a single method and never escapes.
+ * Disjoint-set forest with union by rank and path halving. Mutable by design: it is created, filled
+ * and read inside a single method and never escapes.
  */
 final class UnionFind(size: Int):
   private val parent = Array.tabulate(size)(identity)

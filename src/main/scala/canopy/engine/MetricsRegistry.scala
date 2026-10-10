@@ -24,7 +24,10 @@ object Histogram:
     Vector(0.0001, 0.00025, 0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25)
 
   def empty(bounds: Vector[Double] = defaultBounds): Histogram =
-    require(bounds == bounds.sorted && bounds.distinct == bounds, "bounds must be strictly increasing")
+    require(
+      bounds == bounds.sorted && bounds.distinct == bounds,
+      "bounds must be strictly increasing"
+    )
     Histogram(bounds, Vector.fill(bounds.size + 1)(0L), 0.0, 0L)
 
 final case class MetricsSnapshot(
@@ -56,9 +59,11 @@ final class MetricsRegistry private (ref: Ref[IO, MetricsSnapshot]):
 
   def render(extraGauges: List[(String, String, Double)]): IO[String] = ref.get.map { s =>
     val sb = StringBuilder()
-    def line(str: String): Unit = { sb.append(str).append('\n'); () }
+    def line(str: String): Unit =
+      sb.append(str).append('\n'); ()
     def num(d: Double): String =
-      if d.isPosInfinity then "+Inf" else java.math.BigDecimal.valueOf(d).stripTrailingZeros.toPlainString
+      if d.isPosInfinity then "+Inf"
+      else java.math.BigDecimal.valueOf(d).stripTrailingZeros.toPlainString
     def esc(v: String): String = v.flatMap {
       case '\\' => "\\\\"
       case '"'  => "\\\""
@@ -68,10 +73,14 @@ final class MetricsRegistry private (ref: Ref[IO, MetricsSnapshot]):
 
     line("# HELP canopy_decisions_total Decisions issued, by verdict.")
     line("# TYPE canopy_decisions_total counter")
-    Verdict.values.foreach(v => line(s"""canopy_decisions_total{verdict="${v.wire}"} ${s.decisions.getOrElse(v, 0L)}"""))
+    Verdict.values.foreach(v =>
+      line(s"""canopy_decisions_total{verdict="${v.wire}"} ${s.decisions.getOrElse(v, 0L)}""")
+    )
     line("# HELP canopy_rule_hits_total Rule firings, by rule.")
     line("# TYPE canopy_rule_hits_total counter")
-    s.ruleHits.toList.sortBy(_._1).foreach((r, c) => line(s"""canopy_rule_hits_total{rule="${esc(r)}"} $c"""))
+    s.ruleHits.toList.sortBy(_._1).foreach((r, c) =>
+      line(s"""canopy_rule_hits_total{rule="${esc(r)}"} $c""")
+    )
     line("# HELP canopy_labels_total Outcome labels received.")
     line("# TYPE canopy_labels_total counter")
     line(s"canopy_labels_total ${s.labels}")
@@ -99,4 +108,11 @@ final class MetricsRegistry private (ref: Ref[IO, MetricsSnapshot]):
 
 object MetricsRegistry:
   def create: IO[MetricsRegistry] =
-    Ref.of[IO, MetricsSnapshot](MetricsSnapshot(Map.empty, Map.empty, 0, 0, 0, Histogram.empty())).map(MetricsRegistry(_))
+    Ref.of[IO, MetricsSnapshot](MetricsSnapshot(
+      Map.empty,
+      Map.empty,
+      0,
+      0,
+      0,
+      Histogram.empty()
+    )).map(MetricsRegistry(_))

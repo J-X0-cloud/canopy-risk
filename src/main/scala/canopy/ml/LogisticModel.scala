@@ -10,9 +10,9 @@ final case class Score(probability: Double, logit: Double, contributions: Vector
  * A trained, serialisable scoring model: preprocessing plus coefficients over its columns.
  *
  * Contributions are reported per original feature (a feature's value column and its missing
- * indicator are summed), as coefficient times standardised value. Because inputs are centred on
- * the training mean, a contribution reads as "how much this feature moved the log-odds relative to
- * an average transaction".
+ * indicator are summed), as coefficient times standardised value. Because inputs are centred on the
+ * training mean, a contribution reads as "how much this feature moved the log-odds relative to an
+ * average transaction".
  */
 final case class LogisticModel(
     version: String,

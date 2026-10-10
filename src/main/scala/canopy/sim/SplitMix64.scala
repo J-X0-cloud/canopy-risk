@@ -1,8 +1,8 @@
 package canopy.sim
 
 /**
- * SplitMix64 pseudo-random generator as a pure value. Deterministic across JVMs and Scala
- * versions, so a seed fully determines a simulated dataset and the model trained on it.
+ * SplitMix64 pseudo-random generator as a pure value. Deterministic across JVMs and Scala versions,
+ * so a seed fully determines a simulated dataset and the model trained on it.
  */
 final case class SplitMix64(state: Long):
   def nextLong: (SplitMix64, Long) =
@@ -84,7 +84,8 @@ object Rand:
       u2 <- double
     yield math.sqrt(-2.0 * math.log(1.0 - u1)) * math.cos(2 * math.Pi * u2)
 
-  def logNormal(mu: Double, sigma: Double): Rand[Double] = gaussian.map(z => math.exp(mu + sigma * z))
+  def logNormal(mu: Double, sigma: Double): Rand[Double] =
+    gaussian.map(z => math.exp(mu + sigma * z))
 
   /** Exponential inter-arrival time with the given mean. */
   def exponential(mean: Double): Rand[Double] = double.map(u => -mean * math.log(1.0 - u))

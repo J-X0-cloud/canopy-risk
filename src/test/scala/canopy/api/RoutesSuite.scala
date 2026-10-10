@@ -23,7 +23,8 @@ class RoutesSuite extends CatsEffectSuite:
     )
   )
 
-  private def post(uri: Uri, body: Json): Request[IO] = Request[IO](Method.POST, uri).withEntity(body)
+  private def post(uri: Uri, body: Json): Request[IO] =
+    Request[IO](Method.POST, uri).withEntity(body)
 
   app.test("health reports ok") { http =>
     http.run(Request[IO](Method.GET, uri"/health")).flatMap { r =>
@@ -63,7 +64,12 @@ class RoutesSuite extends CatsEffectSuite:
   }
 
   app.test("streaming endpoint answers NDJSON line by line, including errors") { http =>
-    val body = List(tx("s1").asJson.noSpaces, "", "{\"oops\": 1}", tx("s2", at = t0.plusMinutes(1)).asJson.noSpaces).mkString("\n")
+    val body = List(
+      tx("s1").asJson.noSpaces,
+      "",
+      "{\"oops\": 1}",
+      tx("s2", at = t0.plusMinutes(1)).asJson.noSpaces
+    ).mkString("\n")
     http.run(Request[IO](Method.POST, uri"/v1/score/stream").withEntity(body)).flatMap { r =>
       r.as[String].map { text =>
         val lines = text.linesIterator.toList.map(io.circe.parser.parse(_).toOption.get.hcursor)
@@ -74,19 +80,26 @@ class RoutesSuite extends CatsEffectSuite:
     }
   }
 
-  app.test("rules can be read, validated and replaced; bad rules give located diagnostics") { http =>
-    for
-      current <- http.run(Request[IO](Method.GET, uri"/v1/rules")).flatMap(_.as[Json])
-      invalid <- http.run(Request[IO](Method.PUT, uri"/v1/rules").withEntity("rule r\n  when amout > 1\n  then approve"))
-      diag <- invalid.as[Json]
-      ok <- http.run(Request[IO](Method.POST, uri"/v1/rules/validate").withEntity("rule r when amount > 1 then approve"))
-    yield
-      assert(current.hcursor.downField("rules").values.exists(_.nonEmpty))
-      assertEquals(invalid.status, Status.UnprocessableContent)
-      val d = diag.hcursor.downField("diagnostics").downArray
-      assertEquals(d.get[Int]("line"), Right(2))
-      assertEquals(d.get[Int]("column"), Right(8))
-      assertEquals(ok.status, Status.Ok)
+  app.test("rules can be read, validated and replaced; bad rules give located diagnostics") {
+    http =>
+      for
+        current <- http.run(Request[IO](Method.GET, uri"/v1/rules")).flatMap(_.as[Json])
+        invalid <- http.run(Request[IO](
+          Method.PUT,
+          uri"/v1/rules"
+        ).withEntity("rule r\n  when amout > 1\n  then approve"))
+        diag <- invalid.as[Json]
+        ok <- http.run(Request[IO](
+          Method.POST,
+          uri"/v1/rules/validate"
+        ).withEntity("rule r when amount > 1 then approve"))
+      yield
+        assert(current.hcursor.downField("rules").values.exists(_.nonEmpty))
+        assertEquals(invalid.status, Status.UnprocessableContent)
+        val d = diag.hcursor.downField("diagnostics").downArray
+        assertEquals(d.get[Int]("line"), Right(2))
+        assertEquals(d.get[Int]("column"), Right(8))
+        assertEquals(ok.status, Status.Ok)
   }
 
   app.test("labels, model, schema, features and metrics endpoints") { http =>

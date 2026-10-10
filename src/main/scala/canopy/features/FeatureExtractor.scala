@@ -8,12 +8,15 @@ import scala.util.chaining.*
 /**
  * Turns a transaction plus the aggregate state into a point-in-time feature vector.
  *
- * Ordering matters for correctness: "history" features (z-score, time since last, new device)
- * are read from the state as it was before this event, while velocity counts include the event
- * itself. Training replays history through the same function, so the model never sees a feature
- * computed with information from the future.
+ * Ordering matters for correctness: "history" features (z-score, time since last, new device) are
+ * read from the state as it was before this event, while velocity counts include the event itself.
+ * Training replays history through the same function, so the model never sees a feature computed
+ * with information from the future.
  */
-final class FeatureExtractor(config: FeatureConfig = FeatureConfig(), fx: FxRates = FxRates.reference):
+final class FeatureExtractor(
+    config: FeatureConfig = FeatureConfig(),
+    fx: FxRates = FxRates.reference
+):
   import FeatureConfig.*
 
   def observe(state: FeatureState, tx: Transaction): (FeatureState, FeatureVector) =
@@ -53,7 +56,8 @@ final class FeatureExtractor(config: FeatureConfig = FeatureConfig(), fx: FxRate
     def shared(map: Map[String, SharedState], key: String): SharedState =
       map.get(key) match
         case Some(s) => SharedState(s.cards.add(ts, usd, tx.cardId), math.max(s.lastSeen, ts))
-        case None    => SharedState(EventWindow.empty(config.windowHorizonMillis).add(ts, usd, tx.cardId), ts)
+        case None =>
+          SharedState(EventWindow.empty(config.windowHorizonMillis).add(ts, usd, tx.cardId), ts)
 
     val device = tx.deviceId.map(d => d -> shared(state.devices, d))
     val network = tx.ip.map(ip => ip.network -> shared(state.networks, ip.network))

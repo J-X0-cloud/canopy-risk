@@ -28,8 +28,24 @@ final case class Token(tok: Tok, pos: Pos)
  */
 object Lexer:
   val keywords: Set[String] = Set(
-    "rule", "let", "when", "then", "reason", "priority", "tag", "and", "or", "not", "in",
-    "between", "true", "false", "approve", "review", "decline", "score"
+    "rule",
+    "let",
+    "when",
+    "then",
+    "reason",
+    "priority",
+    "tag",
+    "and",
+    "or",
+    "not",
+    "in",
+    "between",
+    "true",
+    "false",
+    "approve",
+    "review",
+    "decline",
+    "score"
   )
 
   private val twoCharSymbols = Set("==", "!=", "<=", ">=")
@@ -38,7 +54,8 @@ object Lexer:
   def tokenize(src: String): Either[Diagnostic, Vector[Token]] =
     val n = src.length
 
-    def err(msg: String, line: Int, col: Int) = Left(Diagnostic(Severity.Error, msg, Pos(line, col)))
+    def err(msg: String, line: Int, col: Int) =
+      Left(Diagnostic(Severity.Error, msg, Pos(line, col)))
 
     def isIdentStart(c: Char) = c.isLetter || c == '_'
     def isIdentPart(c: Char) = c.isLetterOrDigit || c == '_'
@@ -57,7 +74,8 @@ object Lexer:
           loop(stop, line, col + (stop - i), acc)
         else if isIdentStart(c) then
           scanIdent(src, i) match
-            case Left(badAt) => err("identifier segment expected after '.'", line, col + (badAt - i))
+            case Left(badAt) =>
+              err("identifier segment expected after '.'", line, col + (badAt - i))
             case Right(end) =>
               val word = src.substring(i, end)
               val tok = if keywords.contains(word) then Tok.Kw(word) else Tok.Ident(word)
@@ -75,7 +93,8 @@ object Lexer:
               loop(end, line, col + (end - i), acc :+ Token(Tok.Str(value), here))
         else
           val two = if i + 1 < n then src.substring(i, i + 2) else ""
-          if twoCharSymbols.contains(two) then loop(i + 2, line, col + 2, acc :+ Token(Tok.Sym(two), here))
+          if twoCharSymbols.contains(two) then
+            loop(i + 2, line, col + 2, acc :+ Token(Tok.Sym(two), here))
           else if oneCharSymbols.contains(c) then
             loop(i + 1, line, col + 1, acc :+ Token(Tok.Sym(c.toString), here))
           else err(s"unexpected character '$c'", line, col)
@@ -103,8 +122,10 @@ object Lexer:
         if j < n && (s.charAt(j) == '+' || s.charAt(j) == '-') then j += 1
         if j < n && s.charAt(j).isDigit then digits() else j = save
       val raw = s.substring(start, j)
-      if j < n && isIdentStart(s.charAt(j)) then Left((s"invalid character '${s.charAt(j)}' in number", j))
-      else if raw.endsWith("_") || raw.contains("__") || raw.contains("_.") || raw.contains("._") then
+      if j < n && isIdentStart(s.charAt(j)) then
+        Left((s"invalid character '${s.charAt(j)}' in number", j))
+      else if raw.endsWith("_") || raw.contains("__") || raw.contains("_.") || raw.contains("._")
+      then
         Left((s"misplaced digit separator in '$raw'", start))
       else Right((j, raw.replace("_", "").toDouble))
 
@@ -117,10 +138,10 @@ object Lexer:
             case '"' => Right((i + 1, sb.result()))
             case '\\' if i + 1 < n =>
               s.charAt(i + 1) match
-                case 'n'  => sb.append('\n'); go(i + 2)
-                case 't'  => sb.append('\t'); go(i + 2)
-                case '"'  => sb.append('"'); go(i + 2)
-                case '\\' => sb.append('\\'); go(i + 2)
+                case 'n'   => sb.append('\n'); go(i + 2)
+                case 't'   => sb.append('\t'); go(i + 2)
+                case '"'   => sb.append('"'); go(i + 2)
+                case '\\'  => sb.append('\\'); go(i + 2)
                 case other => Left((s"unknown escape '\\$other'", i))
             case ch => sb.append(ch); go(i + 1)
       go(start)

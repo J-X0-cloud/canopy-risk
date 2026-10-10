@@ -37,7 +37,8 @@ object LogisticRegression:
       e / (1.0 + e)
 
   /** ln(1 + e^z) without overflow. */
-  def softplus(z: Double): Double = if z > 0 then z + math.log1p(math.exp(-z)) else math.log1p(math.exp(z))
+  def softplus(z: Double): Double =
+    if z > 0 then z + math.log1p(math.exp(-z)) else math.log1p(math.exp(z))
 
   def logit(p: Double): Double =
     val q = math.min(1 - 1e-15, math.max(1e-15, p))
@@ -118,7 +119,8 @@ object LogisticRegression:
     @scala.annotation.tailrec
     def iterate(beta: Array[Double], currentLoss: Double, it: Int): FitResult =
       val (g, h) = gradientAndHessian(beta)
-      if Linalg.maxAbs(g) < config.tolerance then FitResult(beta(0), beta.tail, it, true, currentLoss)
+      if Linalg.maxAbs(g) < config.tolerance then
+        FitResult(beta(0), beta.tail, it, true, currentLoss)
       else if it >= config.maxIterations then FitResult(beta(0), beta.tail, it, false, currentLoss)
       else
         val step = Linalg.solveSpd(h, g)
@@ -133,7 +135,7 @@ object LogisticRegression:
             if l <= currentLoss - 1e-4 * t * slope then Some((candidate, l)) else search(t / 2)
         search(1.0) match
           case Some((next, nextLoss)) => iterate(next, nextLoss, it + 1)
-          case None                   => FitResult(beta(0), beta.tail, it, Linalg.maxAbs(g) < 1e-4, currentLoss)
+          case None => FitResult(beta(0), beta.tail, it, Linalg.maxAbs(g) < 1e-4, currentLoss)
 
     val raw = iterate(beta0, loss(beta0), 0)
     raw.copy(intercept = raw.intercept - math.log(posWeight))

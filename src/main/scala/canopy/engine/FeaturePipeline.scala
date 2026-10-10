@@ -5,7 +5,12 @@ import canopy.features.{FeatureConfig, FeatureExtractor, FeatureState, FeatureVe
 import canopy.graph.{EntityGraph, GraphConfig}
 
 /** All mutable-in-spirit state behind scoring, as one immutable value. */
-final case class EngineState(features: FeatureState, graph: EntityGraph, processed: Long, watermark: Long):
+final case class EngineState(
+    features: FeatureState,
+    graph: EntityGraph,
+    processed: Long,
+    watermark: Long
+):
   def entityCount: Int = features.entityCount
 
 object EngineState:
