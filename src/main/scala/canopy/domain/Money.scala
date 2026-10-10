@@ -43,12 +43,13 @@ object Money:
   def fromMajor(amount: BigDecimal, currency: Currency): Either[String, Money] =
     if amount.signum < 0 then Left(s"amount must not be negative: $amount")
     else
-      val scaled = amount.bigDecimal.movePointRight(currency.exponent)
-      val rounded = BigDecimal(scaled).setScale(0, RoundingMode.UNNECESSARY)
-      if !BigDecimal(scaled).isWhole then
+      val scaled = BigDecimal(amount.bigDecimal.movePointRight(currency.exponent))
+      if !scaled.isWhole then
         Left(s"amount $amount has more than ${currency.exponent} decimal places for ${currency.code}")
-      else if !rounded.isValidLong then Left(s"amount $amount is out of range")
-      else Right(Money(rounded.toLong, currency))
+      else
+        val units = scaled.setScale(0, RoundingMode.UNNECESSARY)
+        if !units.isValidLong then Left(s"amount $amount is out of range")
+        else Right(Money(units.toLong, currency))
 
   def fromString(amount: String, currency: Currency): Either[String, Money] =
     try fromMajor(BigDecimal(amount.trim), currency)
