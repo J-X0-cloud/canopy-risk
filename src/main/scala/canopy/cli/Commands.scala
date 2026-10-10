@@ -2,7 +2,7 @@ package canopy.cli
 
 import canopy.api.Server
 import canopy.codec.JsonCodecs.given
-import canopy.domain.{Outcome, Verdict}
+import canopy.domain.{Decision, Outcome, Verdict}
 import canopy.engine.{FeaturePipeline, ScoringService}
 import canopy.ingest.{Ordered, StreamOps}
 import canopy.ml.{Trainer, TrainerConfig, TrainConfig}
@@ -10,6 +10,7 @@ import canopy.rules.{Backtest, RuleSet, Severity}
 import canopy.sim.{SimConfig, SimResult, Simulator}
 import cats.effect.{ExitCode, IO}
 import cats.syntax.all.*
+import fs2.io.file.{Files, Path}
 import io.circe.syntax.*
 
 import java.util.concurrent.TimeUnit
@@ -116,51 +117,59 @@ object Commands:
       )
       service <- ScoringService.create(m, r, FeaturePipeline())
       start <- IO.monotonic
-      decisions <- decisionsOut.fold(IO.pure(Option.empty[java.io.Writer]))(p =>
-        IO.blocking(Some(java.nio.file.Files.newBufferedWriter(java.nio.file.Path.of(p))))
-      )
       rejected <- IO.ref(0L)
-      summary <- Io
+      summary <- IO.ref(ReplaySummary(0, 0, 0, Map.empty, 0, 0, fraud.size.toLong, 0))
+      scored = Io
         .transactions(events)
-        .evalTap {
+        .evalTapChunk {
           case Left(e)  => rejected.update(_ + 1) *> IO.println(s"skipping ${e.render}")
           case Right(_) => IO.unit
         }
         .collect { case Right(tx) => tx }
         .through(StreamOps.dedupe(24L * 3_600_000)(_.id, _.timestamp.toEpochMilli))
         .through(StreamOps.reorder(maxLatenessMillis)(_.timestamp.toEpochMilli))
-        .evalMap {
+        .evalMapChunk {
           case Ordered.InOrder(tx) => service.score(tx).tupleRight(false)
           case Ordered.Late(tx, lag) =>
             IO.println(s"${tx.id} arrived $lag ms too late to reorder; scoring anyway") *>
               service.score(tx).tupleRight(true)
         }
-        .evalTap((d, _) =>
-          decisions.fold(IO.unit)(w => IO.blocking(w.write(d.asJson.noSpaces + "\n")))
-        )
-        .compile
-        .fold(ReplaySummary(0, 0, 0, Map.empty, 0, 0, fraud.size.toLong, 0)) {
-          case (s, (d, late)) =>
-            val isFraud = fraud.contains(d.transactionId)
-            s.copy(
-              total = s.total + 1,
-              late = s.late + (if late then 1 else 0),
-              verdicts = s.verdicts.updatedWith(d.verdict)(c => Some(c.getOrElse(0L) + 1)),
-              caughtFraud =
-                s.caughtFraud + (if isFraud && d.verdict == Verdict.Decline then 1 else 0),
-              reviewedFraud =
-                s.reviewedFraud + (if isFraud && d.verdict == Verdict.Review then 1 else 0),
-              declinedLegit =
-                s.declinedLegit + (if !isFraud && d.verdict == Verdict.Decline then 1 else 0)
-            )
-        }
-        .guarantee(decisions.fold(IO.unit)(w => IO.blocking(w.close())))
+        // Per-chunk bookkeeping keeps the hot path free of per-element effects.
+        .chunks
+        .evalTap(chunk => summary.update(s => chunk.foldLeft(s)(tally(fraud))))
+        .unchunks
+        .map(_._1)
+      _ <- decisionsOut.fold(scored.compile.drain)(path =>
+        scored
+          .map(_.asJson.noSpaces + "\n")
+          .through(fs2.text.utf8.encode)
+          .through(Files[IO].writeAll(Path(path)))
+          .compile
+          .drain
+      )
       end <- IO.monotonic
       elapsed = (end - start).toUnit(TimeUnit.SECONDS)
       rejectedCount <- rejected.get
+      totals <- summary.get
       _ <-
-        IO.println(renderSummary(summary.copy(rejected = rejectedCount), elapsed, labels.isDefined))
+        IO.println(renderSummary(totals.copy(rejected = rejectedCount), elapsed, labels.isDefined))
     yield ExitCode.Success
+
+  private def tally(fraud: Set[String])(
+      s: ReplaySummary,
+      scored: (Decision, Boolean)
+  ): ReplaySummary =
+    val (d, late) = scored
+    val isFraud = fraud.contains(d.transactionId)
+    def count(cond: Boolean): Long = if cond then 1L else 0L
+    s.copy(
+      total = s.total + 1,
+      late = s.late + count(late),
+      verdicts = s.verdicts.updatedWith(d.verdict)(c => Some(c.getOrElse(0L) + 1)),
+      caughtFraud = s.caughtFraud + count(isFraud && d.verdict == Verdict.Decline),
+      reviewedFraud = s.reviewedFraud + count(isFraud && d.verdict == Verdict.Review),
+      declinedLegit = s.declinedLegit + count(!isFraud && d.verdict == Verdict.Decline)
+    )
 
   private def renderSummary(s: ReplaySummary, seconds: Double, withLabels: Boolean): String =
     val counts = Verdict.values.map(v => s"${v.wire}=${s.verdicts.getOrElse(v, 0L)}").mkString(" ")
