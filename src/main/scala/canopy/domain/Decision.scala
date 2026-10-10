@@ -13,7 +13,7 @@ object Verdict:
   given Ordering[Verdict] = Ordering.by(_.severity)
 
 /** A single feature's push on the model logit, in standardized units times the coefficient. */
-final case class Contribution(feature: String, value: Double, contribution: Double)
+final case class Contribution(feature: String, value: Option[Double], contribution: Double)
 
 /** A rule that matched and what it asked for. */
 final case class RuleHit(rule: String, action: String, reason: String)
