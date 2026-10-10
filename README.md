@@ -182,7 +182,7 @@ tags. Add `?dry_run=true` to score without recording the transaction.
 sbt "run simulate --seed 99 --events data/events.ndjson --labels data/labels.ndjson"
 sbt "run train --events data/events.ndjson --labels data/labels.ndjson --out models/model.json"
 sbt "run replay --events data/events.ndjson --labels data/labels.ndjson --model models/model.json"
-sbt "run backtest --events data/events.ndjson --labels data/labels.ndjson --rules my.rules"
+sbt "run backtest --events data/events.ndjson --labels data/labels.ndjson --rules src/main/resources/default.rules"
 sbt "run bench --rounds 5"
 ```
 

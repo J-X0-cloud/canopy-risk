@@ -1,6 +1,7 @@
 # Default policy rules for canopy-risk.
 #
-# Hard actions (decline, review, approve) override the model; score actions nudge its log-odds.
+# Review and decline rules can only escalate the model's verdict, never downgrade it; approve
+# rules can de-escalate below a probability ceiling. Score actions nudge the model's log-odds.
 # When several hard actions match, the highest priority wins, and within one priority the most
 # severe action wins. Every rule here was kept only after `canopy-risk backtest` showed it adds
 # precision or incremental catches on labelled history; see README for the numbers.
