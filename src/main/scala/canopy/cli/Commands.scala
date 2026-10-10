@@ -2,7 +2,7 @@ package canopy.cli
 
 import canopy.api.Server
 import canopy.codec.JsonCodecs.given
-import canopy.domain.{Decision, Outcome, Verdict}
+import canopy.domain.{Outcome, Verdict}
 import canopy.engine.{FeaturePipeline, ScoringService}
 import canopy.ingest.{Ordered, StreamOps}
 import canopy.ml.{Trainer, TrainerConfig, TrainConfig}
@@ -101,47 +101,47 @@ object Commands:
       decisions <- decisionsOut.fold(IO.pure(Option.empty[java.io.Writer]))(p =>
         IO.blocking(Some(java.nio.file.Files.newBufferedWriter(java.nio.file.Path.of(p))))
       )
+      rejected <- IO.ref(0L)
       summary <- Io
         .transactions(events)
         .evalTap {
-          case Left(e)  => IO.println(s"skipping ${e.render}")
+          case Left(e)  => rejected.update(_ + 1) *> IO.println(s"skipping ${e.render}")
           case Right(_) => IO.unit
         }
         .collect { case Right(tx) => tx }
         .through(StreamOps.dedupe(24L * 3_600_000)(_.id, _.timestamp.toEpochMilli))
         .through(StreamOps.reorder(maxLatenessMillis)(_.timestamp.toEpochMilli))
         .evalMap {
-          case Ordered.InOrder(tx) => service.score(tx).map(d => Right(d): Either[Long, Decision])
+          case Ordered.InOrder(tx) => service.score(tx).tupleRight(false)
           case Ordered.Late(tx, lag) =>
-            IO.println(s"late by ${lag} ms, scoring anyway: ${tx.id}") *> service.score(tx).map(Right(_))
+            IO.println(s"${tx.id} arrived $lag ms too late to reorder; scoring anyway") *>
+              service.score(tx).tupleRight(true)
         }
-        .evalTap {
-          case Right(d) => decisions.fold(IO.unit)(w => IO.blocking(w.write(d.asJson.noSpaces + "\n")))
-          case Left(_)  => IO.unit
-        }
+        .evalTap((d, _) => decisions.fold(IO.unit)(w => IO.blocking(w.write(d.asJson.noSpaces + "\n"))))
         .compile
-        .fold(ReplaySummary(0, 0, 0, Map.empty, 0, 0, fraud.size.toLong, 0)) {
-          case (s, Right(d)) =>
-            val isFraud = fraud.contains(d.transactionId)
-            s.copy(
-              total = s.total + 1,
-              verdicts = s.verdicts.updatedWith(d.verdict)(c => Some(c.getOrElse(0L) + 1)),
-              caughtFraud = s.caughtFraud + (if isFraud && d.verdict == Verdict.Decline then 1 else 0),
-              reviewedFraud = s.reviewedFraud + (if isFraud && d.verdict == Verdict.Review then 1 else 0),
-              declinedLegit = s.declinedLegit + (if !isFraud && d.verdict == Verdict.Decline then 1 else 0)
-            )
-          case (s, Left(_)) => s.copy(late = s.late + 1)
+        .fold(ReplaySummary(0, 0, 0, Map.empty, 0, 0, fraud.size.toLong, 0)) { case (s, (d, late)) =>
+          val isFraud = fraud.contains(d.transactionId)
+          s.copy(
+            total = s.total + 1,
+            late = s.late + (if late then 1 else 0),
+            verdicts = s.verdicts.updatedWith(d.verdict)(c => Some(c.getOrElse(0L) + 1)),
+            caughtFraud = s.caughtFraud + (if isFraud && d.verdict == Verdict.Decline then 1 else 0),
+            reviewedFraud = s.reviewedFraud + (if isFraud && d.verdict == Verdict.Review then 1 else 0),
+            declinedLegit = s.declinedLegit + (if !isFraud && d.verdict == Verdict.Decline then 1 else 0)
+          )
         }
         .guarantee(decisions.fold(IO.unit)(w => IO.blocking(w.close())))
       end <- IO.monotonic
       elapsed = (end - start).toUnit(TimeUnit.SECONDS)
-      _ <- IO.println(renderSummary(summary, elapsed, labels.isDefined))
+      rejectedCount <- rejected.get
+      _ <- IO.println(renderSummary(summary.copy(rejected = rejectedCount), elapsed, labels.isDefined))
     yield ExitCode.Success
 
   private def renderSummary(s: ReplaySummary, seconds: Double, withLabels: Boolean): String =
     val counts = Verdict.values.map(v => s"${v.wire}=${s.verdicts.getOrElse(v, 0L)}").mkString(" ")
     val rate = if seconds > 0 then s.total / seconds else 0.0
-    val base = f"scored ${s.total} transactions in $seconds%.2f s ($rate%.0f tx/s): $counts"
+    val base = f"scored ${s.total} transactions in $seconds%.2f s ($rate%.0f tx/s): $counts" +
+      s"\nrejected ${s.rejected} malformed lines, ${s.late} events arrived too late to reorder"
     if !withLabels then base
     else
       val known = math.max(1L, s.knownFraud)

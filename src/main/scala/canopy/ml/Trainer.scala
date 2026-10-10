@@ -18,7 +18,7 @@ final case class TrainingResult(
 
 final case class TrainerConfig(
     validationShare: Double = 0.25,
-    declinePrecision: Double = 0.9,
+    declinePrecision: Double = 0.8,
     maxReviewRate: Double = 0.02,
     train: TrainConfig = TrainConfig()
 )

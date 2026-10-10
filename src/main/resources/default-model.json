@@ -1,0 +1,263 @@
+{
+  "version" : "logreg-v1",
+  "preprocessor" : {
+    "specs" : [
+      {
+        "name" : "amount_usd",
+        "transform" : "Log1p",
+        "mean" : 3.541489040829238,
+        "std" : 1.000412573983773,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "card_not_present",
+        "transform" : "Identity",
+        "mean" : 0.3788529366661555,
+        "std" : 0.4851014214012664,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "hour_of_day",
+        "transform" : "Identity",
+        "mean" : 13.974294586719829,
+        "std" : 4.710537999600924,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "is_night",
+        "transform" : "Log1p",
+        "mean" : 0.02665337456301146,
+        "std" : 0.13328281605357403,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "geo_mismatch",
+        "transform" : "Log1p",
+        "mean" : 0.042506293404099824,
+        "std" : 0.16630193158874967,
+        "missingIndicator" : true
+      },
+      {
+        "name" : "merchant.high_risk",
+        "transform" : "Log1p",
+        "mean" : 0.024793218810857175,
+        "std" : 0.12872702131553207,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "card.count_10m",
+        "transform" : "Log1p",
+        "mean" : 0.7111300069784756,
+        "std" : 0.10591438177076323,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "card.count_1h",
+        "transform" : "Log1p",
+        "mean" : 0.7521787190805784,
+        "std" : 0.1986335942177199,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "card.count_24h",
+        "transform" : "Log1p",
+        "mean" : 1.1223872929877028,
+        "std" : 0.3934759435338538,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "card.sum_usd_1h",
+        "transform" : "Log1p",
+        "mean" : 3.6405154572079454,
+        "std" : 0.9487788481831394,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "card.sum_usd_24h",
+        "transform" : "Log1p",
+        "mean" : 4.3243042398331,
+        "std" : 0.9854956769814608,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "card.small_count_1h",
+        "transform" : "Log1p",
+        "mean" : 0.09027063378640342,
+        "std" : 0.32272468252477393,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "card.distinct_merchants_24h",
+        "transform" : "Log1p",
+        "mean" : 1.0403056125362424,
+        "std" : 0.32942204966757255,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "card.distinct_countries_24h",
+        "transform" : "Log1p",
+        "mean" : 0.7075249161857263,
+        "std" : 0.07686305837532226,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "card.amount_zscore",
+        "transform" : "Identity",
+        "mean" : -0.06603217536071401,
+        "std" : 1.5028866601013886,
+        "missingIndicator" : true
+      },
+      {
+        "name" : "card.seconds_since_last",
+        "transform" : "Log1p",
+        "mean" : 10.401247973572639,
+        "std" : 1.7324249008503345,
+        "missingIndicator" : true
+      },
+      {
+        "name" : "card.is_new",
+        "transform" : "Log1p",
+        "mean" : 0.033296787963562474,
+        "std" : 0.14822583651306326,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "card.age_days",
+        "transform" : "Identity",
+        "mean" : 10.246030128442719,
+        "std" : 6.532862854083563,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "account.new_device",
+        "transform" : "Log1p",
+        "mean" : 0.042703861338743834,
+        "std" : 0.16666265722322662,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "account.devices_30d",
+        "transform" : "Identity",
+        "mean" : 1.3820733016408526,
+        "std" : 0.7992448100328198,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "device.distinct_cards_24h",
+        "transform" : "Log1p",
+        "mean" : 0.7115024471417951,
+        "std" : 0.0843539785243568,
+        "missingIndicator" : true
+      },
+      {
+        "name" : "device.count_1h",
+        "transform" : "Log1p",
+        "mean" : 0.7498331293988924,
+        "std" : 0.22169538378851475,
+        "missingIndicator" : true
+      },
+      {
+        "name" : "ip.distinct_cards_24h",
+        "transform" : "Log1p",
+        "mean" : 0.7163407439682952,
+        "std" : 0.0944282059952272,
+        "missingIndicator" : true
+      },
+      {
+        "name" : "ip.count_1h",
+        "transform" : "Log1p",
+        "mean" : 0.7529108986659238,
+        "std" : 0.22447147373684498,
+        "missingIndicator" : true
+      },
+      {
+        "name" : "graph.linked_cards",
+        "transform" : "Log1p",
+        "mean" : 0.032396502973327676,
+        "std" : 0.22763937485215807,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "graph.component_size",
+        "transform" : "Log1p",
+        "mean" : 1.7405518070709778,
+        "std" : 0.3184316282916054,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "graph.fraud_cards",
+        "transform" : "Log1p",
+        "mean" : 0.01200452357187146,
+        "std" : 0.13116614964975978,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "graph.fraud_ratio",
+        "transform" : "Log1p",
+        "mean" : 0.003273690859900153,
+        "std" : 0.035856845435235034,
+        "missingIndicator" : false
+      },
+      {
+        "name" : "graph.truncated",
+        "transform" : "Identity",
+        "mean" : 0.0,
+        "std" : 1.0,
+        "missingIndicator" : false
+      }
+    ],
+    "clip" : 6.0
+  },
+  "intercept" : -11.59318482949875,
+  "coefficients" : [
+    0.5479064653886186,
+    0.6165119288550935,
+    0.4077680294954822,
+    0.5204046219675181,
+    1.1518194422669104,
+    -0.29907081299844757,
+    0.3999064086070537,
+    -0.03240884877386628,
+    -0.9256856783056333,
+    -1.6309999015661027,
+    0.2872909333437021,
+    0.33151686985458556,
+    2.0128445208069254,
+    1.4134940643299787,
+    -0.3910673542239462,
+    -0.18612519167963815,
+    0.2856636968143211,
+    -1.020249647924033,
+    -0.05107693990666498,
+    -0.23885064655927277,
+    -0.26915450473488306,
+    0.8195358825937309,
+    0.16783458282886177,
+    0.0762110833892727,
+    -0.29907081299844757,
+    0.25389005405584225,
+    -0.29907081299844757,
+    -0.1331734551048547,
+    -0.29907081299844757,
+    0.2899869764597185,
+    -0.29907081299844757,
+    -0.08272038887681425,
+    1.0265724601657227,
+    -0.06000669250659947,
+    -0.008737298882460066,
+    0.0
+  ],
+  "thresholds" : {
+    "review" : 0.00167793098993417,
+    "decline" : 0.09139655258443527
+  },
+  "validation" : {
+    "count" : 17390,
+    "positives" : 188,
+    "auc" : 0.9984922584459501,
+    "averagePrecision" : 0.8527787918601781,
+    "logLoss" : 0.011723119192153568,
+    "brier" : 0.0028602241800769483,
+    "expectedCalibrationError" : 0.0024261096493898896
+  }
+}

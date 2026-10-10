@@ -61,7 +61,7 @@ object Main
       fromFiles.orElse(fromSim),
       Opts.option[String]("out", "Where to write the model."),
       Opts.option[Double]("l2", "L2 penalty.").withDefault(1e-3),
-      Opts.option[Double]("decline-precision", "Required precision at the decline threshold.").withDefault(0.9),
+      Opts.option[Double]("decline-precision", "Required precision at the decline threshold.").withDefault(0.8),
       Opts.option[Double]("max-review-rate", "Share of traffic the review queue can absorb.").withDefault(0.02)
     ).mapN(Commands.train)
   }

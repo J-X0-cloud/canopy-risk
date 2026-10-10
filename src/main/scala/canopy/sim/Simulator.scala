@@ -51,7 +51,9 @@ object Simulator:
       network: String,
       merchants: Vector[Merchant],
       spendMu: Double,
-      dailyRate: Double
+      dailyRate: Double,
+      traveler: Boolean,
+      microSpender: Boolean
   )
 
   private val homeCountries: Vector[(String, Currency, Double)] = Vector(
@@ -137,7 +139,9 @@ object Simulator:
         network = randomNetwork(),
         merchants = Vector.fill(4 + rng.int(6))(rng.pick(everydayMerchants)) :+ rng.pick(merchants),
         spendMu = math.log(15 + rng.double() * 60),
-        dailyRate = 0.2 + rng.double() * 1.8
+        dailyRate = 0.2 + rng.double() * 1.8,
+        traveler = rng.chance(0.05),
+        microSpender = rng.chance(0.04)
       )
     }
 
@@ -183,18 +187,34 @@ object Simulator:
     cardholders.foreach { h =>
       val count = rng.draw(Rand.poisson(h.dailyRate * config.days))
       (0 until count).foreach { _ =>
-        val traveling = rng.chance(config.travelProbability)
+        val traveling = rng.chance(if h.traveler then 0.35 else config.travelProbability)
         val country =
           if traveling then CountryCode.unsafe(rng.pick(homeCountries.map(_._1).filterNot(_ == h.country.value)))
           else h.country
         val device =
-          if rng.chance(config.newDeviceProbability) then f"dev-new-${rng.int(1_000_000)}%06d"
+          if rng.chance(if traveling then 0.2 else config.newDeviceProbability) then
+            f"dev-new-${rng.int(1_000_000)}%06d"
           else rng.pick(h.devices)
         val small = rng.chance(0.04)
         val usd = if small then 0.5 + rng.double() * 4 else rng.draw(Rand.logNormal(h.spendMu, 0.6))
         val merchant = if rng.chance(0.9) then rng.pick(h.merchants) else rng.pick(merchants)
         val network = if traveling then randomNetwork() else h.network
         emit(h, rng.pick(h.cards), activityTime(), merchant, usd, Some(device), Some(ip(network)), Some(country), fraud = false)
+      }
+    }
+
+    // Legitimate bursts of small charges (transit taps, vending, app top-ups) that look like card
+    // testing to a naive rule.
+    val transit = Merchant("m-transit", 4111, cnp = false)
+    val topUp = Merchant("m-topup", 5818, cnp = true)
+    cardholders.filter(_.microSpender).foreach { h =>
+      (0 until 1 + rng.int(config.days / 3 + 1)).foreach { _ =>
+        var t = activityTime()
+        val merchant = if rng.chance(0.5) then transit else topUp
+        (0 until 3 + rng.int(4)).foreach { _ =>
+          t += 60_000L + rng.int(900_000)
+          emit(h, h.cards.head, t, merchant, 0.5 + rng.double() * 4, Some(h.devices.head), Some(ip(h.network)), Some(h.country), fraud = false)
+        }
       }
     }
 

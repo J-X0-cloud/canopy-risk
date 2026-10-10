@@ -50,6 +50,10 @@ object FeatureSchema:
 
   val types: Map[String, FeatureType] = all.map(s => s.name -> s.tpe).toMap
 
-  /** Features suitable as model inputs, in a stable order. */
+  /**
+   * Features suitable as model inputs, in a stable order. Raw `amount` (mixed currencies), the
+   * already-logged amount (the preprocessor chooses its own transform) and the categorical MCC
+   * code are excluded.
+   */
   val modelInputs: Vector[String] =
-    all.filter(s => s.tpe != Text).map(_.name).filterNot(Set("amount", "merchant.mcc")).toVector
+    all.filter(s => s.tpe != Text).map(_.name).filterNot(Set("amount", "log_amount_usd", "merchant.mcc")).toVector

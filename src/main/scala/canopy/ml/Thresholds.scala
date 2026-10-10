@@ -18,7 +18,7 @@ object ThresholdTuner:
   def tune(
       scores: Array[Double],
       labels: Array[Int],
-      declinePrecision: Double = 0.9,
+      declinePrecision: Double = 0.8,
       maxReviewRate: Double = 0.02
   ): Tuned =
     require(scores.length == labels.length && scores.nonEmpty, "need scored validation data")
