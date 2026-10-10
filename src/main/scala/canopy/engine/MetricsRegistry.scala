@@ -57,7 +57,8 @@ final class MetricsRegistry private (ref: Ref[IO, MetricsSnapshot]):
   def render(extraGauges: List[(String, String, Double)]): IO[String] = ref.get.map { s =>
     val sb = StringBuilder()
     def line(str: String): Unit = { sb.append(str).append('\n'); () }
-    def num(d: Double): String = if d.isPosInfinity then "+Inf" else d.toString
+    def num(d: Double): String =
+      if d.isPosInfinity then "+Inf" else java.math.BigDecimal.valueOf(d).stripTrailingZeros.toPlainString
     def esc(v: String): String = v.flatMap {
       case '\\' => "\\\\"
       case '"'  => "\\\""
