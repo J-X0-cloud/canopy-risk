@@ -1,6 +1,6 @@
 package canopy
 
-import canopy.cli.Commands
+import canopy.cli.{Bench, Commands}
 import canopy.sim.SimConfig
 import cats.effect.{ExitCode, IO}
 import cats.syntax.all.*
@@ -92,4 +92,20 @@ object Main
     Opts.argument[String]("file").map(Commands.checkRules)
   }
 
-  def main: Opts[IO[ExitCode]] = serve orElse simulate orElse train orElse replay orElse checkRules
+  private val backtest = Opts.subcommand("backtest", "Measure each rule against labelled history.") {
+    (
+      Opts.option[String]("events", "Transactions NDJSON."),
+      Opts.option[String]("labels", "Labels NDJSON."),
+      rulesOpt
+    ).mapN(Commands.backtest)
+  }
+
+  private val bench = Opts.subcommand("bench", "Measure single-threaded throughput of each stage.") {
+    (
+      simOpts,
+      Opts.option[Int]("rounds", "Timed rounds after warm-up.").withDefault(5)
+    ).mapN(Bench.run)
+  }
+
+  def main: Opts[IO[ExitCode]] =
+    serve orElse simulate orElse train orElse replay orElse backtest orElse checkRules orElse bench

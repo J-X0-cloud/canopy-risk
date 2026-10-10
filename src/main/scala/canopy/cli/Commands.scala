@@ -6,7 +6,7 @@ import canopy.domain.{Outcome, Verdict}
 import canopy.engine.{FeaturePipeline, ScoringService}
 import canopy.ingest.{Ordered, StreamOps}
 import canopy.ml.{Trainer, TrainerConfig, TrainConfig}
-import canopy.rules.{RuleSet, Severity}
+import canopy.rules.{Backtest, RuleSet, Severity}
 import canopy.sim.{SimConfig, SimResult, Simulator}
 import cats.effect.{ExitCode, IO}
 import cats.syntax.all.*
@@ -174,6 +174,16 @@ object Commands:
       base + "\n" +
         f"fraud declined ${s.caughtFraud}/${s.knownFraud} (${100.0 * s.caughtFraud / known}%.1f%%), " +
         f"sent to review ${s.reviewedFraud}, decline precision ${100.0 * (declined - s.declinedLegit) / declined}%.1f%%"
+
+  def backtest(events: String, labels: String, rules: Option[String]): IO[ExitCode] =
+    for
+      rs <- Io.loadRules(rules)
+      txs <- Io.strict(Io.transactions(events), events)
+      ls <- Io.strict(Io.labels(labels), labels)
+      rows <- IO(Trainer.buildRows(txs, ls))
+      report = Backtest.run(rs, rows.map(r => (r.features, r.label)))
+      _ <- IO.println(report.render)
+    yield ExitCode.Success
 
   def checkRules(path: String): IO[ExitCode] =
     Io.readText(path).flatMap { source =>
