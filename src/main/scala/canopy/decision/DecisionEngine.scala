@@ -70,13 +70,13 @@ object DecisionEngine:
         val factors =
           if risk.isEmpty then "" else s"; main risk factors: ${risk.map(_.feature).mkString(", ")}"
         val cut = verdict match
-          case Verdict.Decline => f"at or above the decline threshold ${thresholds.decline}%.3f"
+          case Verdict.Decline => s"at or above the decline threshold ${sig(thresholds.decline)}"
           case Verdict.Review =>
-            f"between the review ${thresholds.review}%.3f and decline ${thresholds.decline}%.3f thresholds"
-          case Verdict.Approve => f"below the review threshold ${thresholds.review}%.3f"
+            s"between the review ${sig(thresholds.review)} and decline ${sig(thresholds.decline)} thresholds"
+          case Verdict.Approve => s"below the review threshold ${sig(thresholds.review)}"
         val ignored = ruleChoice.filter(_ => effectiveRule.isEmpty)
           .fold("")(f => s"; approve rule ${f.rule} ignored because the score exceeds the ceiling")
-        f"${pastTense(verdict)}: risk score $finalScore%.3f is $cut$factors$ignored"
+        s"${pastTense(verdict)}: risk score ${sig(finalScore)} is $cut$factors$ignored"
 
     Decision(
       transactionId = transactionId,
@@ -92,6 +92,10 @@ object DecisionEngine:
       ),
       tags = firings.flatMap(_.tags).distinct
     )
+
+  /** Three significant digits, so 0.000166 and 0.0849 both stay readable next to each other. */
+  private[decision] def sig(p: Double): String =
+    java.math.BigDecimal(p).round(java.math.MathContext(3)).stripTrailingZeros.toPlainString
 
   private def verdictOf(action: Action): Verdict = action match
     case Action.Approve  => Verdict.Approve

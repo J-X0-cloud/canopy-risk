@@ -88,3 +88,14 @@ class DecisionEngineSuite extends munit.FunSuite:
     assertEquals(d.tags, List("x", "y"))
     assertEquals(d.explanation.ruleHits.map(_.action), List("score +0.5", "review"))
   }
+
+  test("scores in summaries keep three significant digits") {
+    assertEquals(DecisionEngine.sig(0.000166321), "0.000166")
+    assertEquals(DecisionEngine.sig(0.0849), "0.0849")
+    assertEquals(DecisionEngine.sig(0.5), "0.5")
+    val d = DecisionEngine.decide("t", score(0.000123), Nil, policy)
+    assert(
+      d.explanation.summary.contains("risk score 0.000123 is below the review threshold 0.2"),
+      d.explanation.summary
+    )
+  }
