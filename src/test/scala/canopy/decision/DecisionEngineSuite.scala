@@ -57,6 +57,16 @@ class DecisionEngineSuite extends munit.FunSuite:
     assertEquals(d2.verdict, Verdict.Approve)
   }
 
+  test("review rules escalate but never downgrade a model decline") {
+    val d = DecisionEngine.decide("t", score(0.9), List(firing("ato", Action.Review, 70)), policy)
+    assertEquals(d.verdict, Verdict.Decline)
+    assertEquals(d.decidedBy, "model")
+    assert(d.explanation.summary.contains("rule ato asked only for review"), d.explanation.summary)
+    assertEquals(d.explanation.ruleHits.map(_.rule), List("ato"))
+    val up = DecisionEngine.decide("t", score(0.01), List(firing("ato", Action.Review, 70)), policy)
+    assertEquals((up.verdict, up.decidedBy), (Verdict.Review, "rule:ato"))
+  }
+
   test("approve rules cannot wave through scores above the ceiling") {
     val d =
       DecisionEngine.decide("t", score(0.995), List(firing("vip", Action.Approve, 10)), policy)

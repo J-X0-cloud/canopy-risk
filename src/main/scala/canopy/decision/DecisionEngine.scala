@@ -16,11 +16,14 @@ final case class Policy(
 /**
  * Combines the model score with rule firings.
  *
- * Precedence, from strongest to weakest:
- *   1. hard rule actions, taking the highest-priority group and, within it, the most severe
- *      verdict, so a tie between "approve" and "decline" at equal priority declines;
- *   2. the model probability after rule score adjustments, cut at the review and decline
- *      thresholds.
+ * The model verdict comes from the probability after rule score adjustments, cut at the review and
+ * decline thresholds. Hard rule actions are then resolved by taking the highest-priority group of
+ * firings and, within it, the most severe action, so a tie between "approve" and "decline" at equal
+ * priority declines.
+ *
+ * Review and decline rules only ever escalate: a review rule never downgrades a transaction the
+ * model would decline. Approve rules are the one way to de-escalate (allow-lists for known-good
+ * customers), and they are capped by `approveCeiling`.
  *
  * Score adjustments are applied in log-odds space so several adjustments compose additively and the
  * result is always a valid probability. An approve rule is ignored when the adjusted model
@@ -42,8 +45,11 @@ object DecisionEngine:
     val hard = firings.filter(_.action.isHard)
     val topGroup = hard.headOption.map(h => hard.filter(_.priority == h.priority)).getOrElse(Nil)
     val ruleChoice = topGroup.maxByOption(f => verdictOf(f.action).severity)
-    val effectiveRule =
-      ruleChoice.filterNot(f => f.action == Action.Approve && finalScore >= policy.approveCeiling)
+    val effectiveRule = ruleChoice.filter { f =>
+      f.action match
+        case Action.Approve => finalScore < policy.approveCeiling
+        case other          => verdictOf(other).severity >= modelVerdict.severity
+    }
 
     val (verdict, decidedBy) = effectiveRule match
       case Some(f) => (verdictOf(f.action), s"rule:${f.rule}")
@@ -74,8 +80,11 @@ object DecisionEngine:
           case Verdict.Review =>
             s"between the review ${sig(thresholds.review)} and decline ${sig(thresholds.decline)} thresholds"
           case Verdict.Approve => s"below the review threshold ${sig(thresholds.review)}"
-        val ignored = ruleChoice.filter(_ => effectiveRule.isEmpty)
-          .fold("")(f => s"; approve rule ${f.rule} ignored because the score exceeds the ceiling")
+        val ignored = ruleChoice.filter(_ => effectiveRule.isEmpty).fold("") { f =>
+          if f.action == Action.Approve then
+            s"; approve rule ${f.rule} ignored because the score exceeds the ceiling"
+          else s"; rule ${f.rule} asked only for ${verdictOf(f.action).wire}"
+        }
         s"${pastTense(verdict)}: risk score ${sig(finalScore)} is $cut$factors$ignored"
 
     Decision(
