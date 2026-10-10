@@ -1,0 +1,13 @@
+target/
+project/target/
+project/project/
+.bsp/
+.metals/
+.bloop/
+.idea/
+.vscode/
+*.class
+*.log
+/models/*.json
+!/models/.gitkeep
+/data/
