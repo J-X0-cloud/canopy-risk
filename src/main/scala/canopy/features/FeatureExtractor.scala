@@ -96,6 +96,7 @@ final class FeatureExtractor(
         "card.small_count_1h",
         card.activity.countWhere(ts, Hour)(_ < config.smallAmountUsd).toDouble
       )
+      .withNum("card.distinct_merchants_1h", card.activity.distinctKeys(ts, Hour).toDouble)
       .withNum("card.distinct_merchants_24h", card.activity.distinctKeys(ts, Day).toDouble)
       .withNum("card.distinct_countries_24h", card.countries.distinctKeys(ts, Day).toDouble)
       .withBool("card.is_new", priorCard.isEmpty)

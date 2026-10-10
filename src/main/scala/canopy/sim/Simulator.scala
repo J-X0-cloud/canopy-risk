@@ -153,6 +153,7 @@ object Simulator:
 
     val txs = Vector.newBuilder[Transaction]
     val labels = Vector.newBuilder[Label]
+    val fraudIds = Set.newBuilder[String]
 
     def emit(
         holder: Cardholder,
@@ -190,6 +191,7 @@ object Simulator:
         billingCountry = holder.country
       )
       txs += tx
+      if fraud then fraudIds += id
       if fraud && !rng.chance(config.unreportedFraudShare) then
         val delay = Duration.ofDays(3 + rng.int(25).toLong).plusHours(rng.int(24).toLong)
         labels += Label(id, card, Outcome.Fraud, tx.timestamp.plus(delay))
@@ -349,4 +351,17 @@ object Simulator:
       }
     }
 
-    SimResult(txs.result().sortBy(t => (t.timestamp, t.id)), labels.result().sortBy(_.reportedAt))
+    // Issuers close a card once a chargeback is reported and send a replacement. The cardholder's
+    // later legitimate spending moves to the new card number; without this, the compromised card
+    // would keep transacting while linked to the fraudster's devices, which never happens.
+    val allLabels = labels.result().sortBy(_.reportedAt)
+    val reissuedAt =
+      allLabels.groupMapReduce(_.cardId)(_.reportedAt)((a, b) => if a.isBefore(b) then a else b)
+    val fraudulent = fraudIds.result()
+    val reissued = txs.result().map { t =>
+      reissuedAt.get(t.cardId) match
+        case Some(at) if t.timestamp.isAfter(at) && !fraudulent.contains(t.id) =>
+          t.copy(cardId = s"${t.cardId}-r1")
+        case _ => t
+    }
+    SimResult(reissued.sortBy(t => (t.timestamp, t.id)), allLabels)

@@ -29,6 +29,7 @@ object FeatureSchema:
     Spec("card.sum_usd_1h", Number, "USD volume on the card in the last hour"),
     Spec("card.sum_usd_24h", Number, "USD volume on the card in the last 24 hours"),
     Spec("card.small_count_1h", Number, "Authorizations under 5 USD on the card in the last hour"),
+    Spec("card.distinct_merchants_1h", Number, "Distinct merchants on the card in the last hour"),
     Spec("card.distinct_merchants_24h", Number, "Distinct merchants on the card in 24 hours"),
     Spec("card.distinct_countries_24h", Number, "Distinct IP countries on the card in 24 hours"),
     Spec("card.amount_zscore", Number, "Z-score of log amount against the card's decayed history"),

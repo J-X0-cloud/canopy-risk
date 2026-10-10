@@ -30,6 +30,7 @@ class ScoringServiceSuite extends CatsEffectSuite:
     val burst = (1 to 6).toList.map(i =>
       tx(
         s"ct$i",
+        merchant = s"probe-merchant-$i",
         card = "victim",
         account = "acct-v",
         amount = "1.00",
@@ -98,8 +99,8 @@ class ScoringServiceSuite extends CatsEffectSuite:
       ))
     yield
       assertEquals(fv.num("graph.fraud_cards"), Some(2.0))
-      assertEquals(d.verdict, Verdict.Decline)
-      assertEquals(d.decidedBy, "rule:known_fraud_ring")
+      assertEquals(d.verdict, Verdict.Review)
+      assertEquals(d.decidedBy, "rule:linked_to_fraud")
   }
 
   service.test("rules can be hot swapped and bad programs are rejected without effect") { s =>

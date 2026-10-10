@@ -1,28 +1,31 @@
 # Default policy rules for canopy-risk.
 #
 # Hard actions (decline, review, approve) override the model; score actions nudge its log-odds.
-# Higher priority rules win when several hard actions match.
+# When several hard actions match, the highest priority wins, and within one priority the most
+# severe action wins. Every rule here was kept only after `canopy-risk backtest` showed it adds
+# precision or incremental catches on labelled history; see README for the numbers.
 
 let tiny_amount = amount_usd < 5
 let foreign_ip = coalesce(geo_mismatch, false)
-let shared_device = coalesce(device.distinct_cards_24h, 0) >= 4
+let cards_on_device = coalesce(device.distinct_cards_24h, 0)
+let cards_on_network = coalesce(ip.distinct_cards_24h, 0)
 
 rule card_testing priority 100
-  when tiny_amount and card.small_count_1h >= 4
+  when tiny_amount and card.small_count_1h >= 3 and card.distinct_merchants_1h >= 3
   then decline
-  reason "Burst of small authorizations typical of card testing"
+  reason "Burst of small authorizations across several merchants, typical of card testing"
   tag "card-testing"
 
-rule known_fraud_ring priority 90
-  when graph.fraud_cards >= 2 and graph.fraud_ratio >= 0.3
-  then decline
-  reason "Card is linked to several confirmed-fraud cards through shared devices or networks"
+rule linked_to_fraud priority 90
+  when graph.fraud_cards >= 2 and cards_on_device >= 2
+  then review
+  reason "Device is shared with other cards and the card is linked to confirmed fraud"
   tag "fraud-ring"
 
 rule device_farm priority 80
-  when shared_device and card_not_present
+  when cards_on_device >= 3 or cards_on_network >= 3
   then review
-  reason "Device has been used with many different cards today"
+  reason "Device or network has been used with three or more cards today"
   tag "device-sharing"
 
 rule takeover_pattern priority 70
@@ -31,22 +34,16 @@ rule takeover_pattern priority 70
   reason "Large purchase from a new device in a different country than the billing address"
   tag "account-takeover"
 
-rule country_hopping priority 60
-  when card.distinct_countries_24h >= 3
-  then review
-  reason "Card seen from three or more countries in a day"
-  tag "geo-velocity"
-
-rule high_risk_category
-  when merchant.high_risk and card_not_present
-  then score +0.6
+rule risky_category_new_device
+  when merchant.high_risk and card_not_present and account.new_device
+  then score +1.0
   tag "high-risk-mcc"
 
-rule unusual_amount
-  when coalesce(card.amount_zscore, 0) > 3
+rule unusual_amount_online
+  when coalesce(card.amount_zscore, 0) > 3 and card_not_present
   then score +0.8
   tag "amount-anomaly"
 
 rule established_card
-  when card.age_days > 180 and not account.new_device and not foreign_ip
-  then score -0.7
+  when card.age_days > 14 and not account.new_device and not foreign_ip
+  then score -0.5
