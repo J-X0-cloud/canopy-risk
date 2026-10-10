@@ -8,6 +8,5 @@ project/project/
 .vscode/
 *.class
 *.log
-/models/*.json
-!/models/.gitkeep
+/models/
 /data/
