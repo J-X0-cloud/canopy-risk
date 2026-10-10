@@ -1,0 +1,52 @@
+# Default policy rules for canopy-risk.
+#
+# Hard actions (decline, review, approve) override the model; score actions nudge its log-odds.
+# Higher priority rules win when several hard actions match.
+
+let tiny_amount = amount_usd < 5
+let foreign_ip = coalesce(geo_mismatch, false)
+let shared_device = coalesce(device.distinct_cards_24h, 0) >= 4
+
+rule card_testing priority 100
+  when tiny_amount and card.small_count_1h >= 4
+  then decline
+  reason "Burst of small authorizations typical of card testing"
+  tag "card-testing"
+
+rule known_fraud_ring priority 90
+  when graph.fraud_cards >= 2 and graph.fraud_ratio >= 0.3
+  then decline
+  reason "Card is linked to several confirmed-fraud cards through shared devices or networks"
+  tag "fraud-ring"
+
+rule device_farm priority 80
+  when shared_device and card_not_present
+  then review
+  reason "Device has been used with many different cards today"
+  tag "device-sharing"
+
+rule takeover_pattern priority 70
+  when account.new_device and foreign_ip and amount_usd > 250
+  then review
+  reason "Large purchase from a new device in a different country than the billing address"
+  tag "account-takeover"
+
+rule country_hopping priority 60
+  when card.distinct_countries_24h >= 3
+  then review
+  reason "Card seen from three or more countries in a day"
+  tag "geo-velocity"
+
+rule high_risk_category
+  when merchant.high_risk and card_not_present
+  then score +0.6
+  tag "high-risk-mcc"
+
+rule unusual_amount
+  when coalesce(card.amount_zscore, 0) > 3
+  then score +0.8
+  tag "amount-anomaly"
+
+rule established_card
+  when card.age_days > 180 and not account.new_device and not foreign_ip
+  then score -0.7
